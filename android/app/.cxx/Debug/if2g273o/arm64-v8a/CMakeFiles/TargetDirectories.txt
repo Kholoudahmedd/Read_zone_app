@@ -1,0 +1,2 @@
+D:/1GRADUATION YEAR/1Graduation project/read_zone_app/android/app/.cxx/Debug/if2g273o/arm64-v8a/CMakeFiles/edit_cache.dir
+D:/1GRADUATION YEAR/1Graduation project/read_zone_app/android/app/.cxx/Debug/if2g273o/arm64-v8a/CMakeFiles/rebuild_cache.dir

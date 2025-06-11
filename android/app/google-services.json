@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "720979166367",
+    "project_id": "read-zone-app-440de",
+    "storage_bucket": "read-zone-app-440de.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:720979166367:android:e04641543ca5a430628eaa",
+        "android_client_info": {
+          "package_name": "com.example.read_zone_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBG8HWtq8I6g1gZkmmXnJCFCNcqBPSwPOE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
