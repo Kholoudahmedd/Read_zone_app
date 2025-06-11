@@ -45,10 +45,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
 
       final data = response.data;
+      if (!mounted) return;
       setState(() {
         _usernameController.text = data['username'] ?? '';
         _emailController.text = data['email'] ?? '';
-        currentImageUrl = data['profileImage'];
+        currentImageUrl = data['profileImageUrl'];
       });
     } catch (e) {
       print('Error fetching profile: $e');
@@ -59,9 +60,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
+      final imageFile = File(pickedFile.path);
+      if (!mounted) return;
       setState(() {
-        _selectedImage = File(pickedFile.path);
+        _selectedImage = imageFile;
       });
+
+      final uploadedUrl = await _uploadImage(imageFile);
+
+      if (!mounted) return;
+      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
+        setState(() {
+          currentImageUrl = uploadedUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile image uploaded successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload image')),
+        );
+      }
     }
   }
 
@@ -72,7 +91,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     try {
       final fileName = imageFile.path.split('/').last;
       final formData = FormData.fromMap({
-        "file":
+        "image":
             await MultipartFile.fromFile(imageFile.path, filename: fileName),
       });
 
@@ -98,31 +117,41 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
       if (_selectedImage != null) {
         final imageUrl = await _uploadImage(_selectedImage!);
-        if (imageUrl != null) {
+        if (imageUrl != null && imageUrl.isNotEmpty) {
           uploadedImageUrl = imageUrl;
         }
       }
 
-      final updateData = {
+      final Map<String, dynamic> updateData = {
         "username": _usernameController.text,
         "email": _emailController.text,
-        "password": _passwordController.text.isNotEmpty
-            ? _passwordController.text
-            : null,
-        "profileImage": uploadedImageUrl
       };
 
-      await _dio.put(
+      if (_passwordController.text.isNotEmpty) {
+        updateData["password"] = _passwordController.text;
+      }
+
+      if (uploadedImageUrl != null && uploadedImageUrl.isNotEmpty) {
+        updateData["profileImageUrl"] = uploadedImageUrl;
+      }
+
+      final response = await _dio.put(
         '$baseUrl/Auth/update-username',
         data: updateData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Profile updated successfully')),
-      );
-      Navigator.pop(context);
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile updated successfully')),
+        );
+        Navigator.pop(context);
+      } else {
+        throw Exception('Update failed with status: ${response.statusCode}');
+      }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update profile: $e')),
       );
@@ -193,13 +222,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  buildInputField(
-                    "Username",
-                    _usernameController,
-                  ),
+                  buildInputField("Username", _usernameController),
                   buildInputField("Email", _emailController, readOnly: true),
-                  // buildInputField("Password", _passwordController,
-                  //     isPassword: true),
+                  // Uncomment if you want to allow password change
+                  // buildInputField("Password", _passwordController, isPassword: true),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _updateProfile,

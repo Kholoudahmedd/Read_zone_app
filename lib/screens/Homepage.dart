@@ -1,4 +1,3 @@
-// باقي importاتك كما هي...
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -39,12 +38,14 @@ class _HomepageState extends State<Homepage> {
   ];
 
   bool isDarkMode = false;
-  String? userImage; // صورة ثابتة مؤقتًا
+  String? userImageHeader;
+  bool isLoadingHeader = true;
 
   @override
   void initState() {
     super.initState();
     _loadTheme();
+    _loadUserHeaderImage();
   }
 
   void _loadTheme() async {
@@ -62,6 +63,27 @@ class _HomepageState extends State<Homepage> {
 
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDarkMode', isDarkMode);
+  }
+
+  void _loadUserHeaderImage() async {
+    final authService = AuthService();
+    final profile = await authService.getProfile();
+
+    if (!mounted) return;
+
+    if (profile != null) {
+      final profileImage = profile['profileImageUrl'];
+      setState(() {
+        userImageHeader = profileImage != null && profileImage != ''
+            ? 'https://myfirstapi.runasp.net/$profileImage'
+            : null;
+        isLoadingHeader = false;
+      });
+    } else {
+      setState(() {
+        isLoadingHeader = false;
+      });
+    }
   }
 
   void onTabSelected(int index) {
@@ -104,17 +126,23 @@ class _HomepageState extends State<Homepage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => ProfilePage(
-                                    user: currentUser,
-                                  )),
+                            builder: (context) =>
+                                ProfilePage(user: currentUser),
+                          ),
                         );
                       },
-                      child: CircleAvatar(
-                        backgroundImage: userImage != null
-                            ? NetworkImage(userImage!)
-                            : const AssetImage('assets/images/test.jpg')
-                                as ImageProvider,
-                      ),
+                      child: isLoadingHeader
+                          ? SizedBox(
+                              width: 30,
+                              height: 30,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: getRedColor(context)))
+                          : CircleAvatar(
+                              backgroundImage: userImageHeader != null
+                                  ? NetworkImage(userImageHeader!)
+                                  : const AssetImage('assets/images/test.jpg')
+                                      as ImageProvider,
+                            ),
                     ),
                   ),
                 ],
@@ -270,8 +298,9 @@ class UserHeader extends StatefulWidget {
 class _UserHeaderState extends State<UserHeader> {
   String? username;
   String? email;
-  String? userImage; // صورة ثابتة مؤقتًا
+  String? userImage;
   bool isLoading = true;
+  final String baseUrl = 'https://myfirstapi.runasp.net/';
 
   @override
   void initState() {
@@ -283,18 +312,23 @@ class _UserHeaderState extends State<UserHeader> {
     final authService = AuthService();
     final profile = await authService.getProfile();
 
+    if (!mounted) return;
+
     if (profile != null) {
+      final profileImage = profile['profileImageUrl'];
       setState(() {
         username = profile['username'];
         email = profile['email'];
-        if (profile['profileImageUrl'] != null &&
-            profile['profileImageUrl'].toString().startsWith('http')) {
-          userImage = profile['profileImageUrl'];
-        }
+        userImage = profileImage != null && profileImage != ''
+            ? '$baseUrl$profileImage'
+            : null;
         isLoading = false;
       });
     } else {
-      print("فشل في جلب بيانات الحساب");
+      print("ERROR: Failed to load user profile");
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -306,12 +340,17 @@ class _UserHeaderState extends State<UserHeader> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircleAvatar(
-            backgroundImage: userImage != null
-                ? NetworkImage(userImage!)
-                : AssetImage('assets/images/test.jpg') as ImageProvider,
-            maxRadius: 80,
-          ),
+          isLoading
+              ? CircularProgressIndicator(
+                  color: getRedColor(context),
+                )
+              : CircleAvatar(
+                  backgroundImage: userImage != null
+                      ? NetworkImage(userImage!)
+                      : const AssetImage('assets/images/test.jpg')
+                          as ImageProvider,
+                  maxRadius: 80,
+                ),
           const SizedBox(height: 10),
           Text(
             username ?? 'Loading...',
@@ -357,7 +396,7 @@ class NavBarIcon extends StatelessWidget {
         width: 41,
         color: Theme.of(context).brightness == Brightness.dark
             ? selectedIndex == index
-                ? Color.fromARGB(255, 32, 36, 46)
+                ? const Color.fromARGB(255, 32, 36, 46)
                 : Colors.white
             : selectedIndex == index
                 ? Colors.white

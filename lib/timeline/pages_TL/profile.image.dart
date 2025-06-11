@@ -19,9 +19,10 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String? username;
   String? email;
-  String userImage = 'assets/images/test.jpg'; // صورة افتراضية مؤقتًا
-
+  String? userImage;
   bool isLoading = true;
+
+  final String baseUrl = 'https://myfirstapi.runasp.net/';
 
   @override
   void initState() {
@@ -33,14 +34,16 @@ class _ProfilePageState extends State<ProfilePage> {
     final authService = AuthService();
     final profile = await authService.getProfile();
 
+    if (!mounted) return;
+
     if (profile != null) {
+      final profileImage = profile['profileImageUrl'];
       setState(() {
         username = profile['username'];
         email = profile['email'];
-        if (profile['profileImageUrl'] != null &&
-            profile['profileImageUrl'].toString().startsWith('http')) {
-          userImage = profile['profileImageUrl'];
-        }
+        userImage = profileImage != null && profileImage != ''
+            ? '$baseUrl$profileImage'
+            : null;
         isLoading = false;
       });
     } else {
@@ -54,8 +57,10 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return Center(
-        child: CircularProgressIndicator(color: getRedColor(context)),
+      return Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: getRedColor(context)),
+        ),
       );
     }
 
@@ -106,9 +111,11 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             child: CircleAvatar(
                               radius: 50,
-                              backgroundImage: userImage.startsWith('http')
-                                  ? NetworkImage(userImage)
-                                  : AssetImage(userImage) as ImageProvider,
+                              backgroundImage: (userImage != null &&
+                                      userImage!.startsWith('http'))
+                                  ? NetworkImage(userImage!)
+                                  : const AssetImage('assets/images/test.jpg')
+                                      as ImageProvider,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -129,8 +136,11 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 20),
                           MaterialButton(
                             onPressed: () async {
-                              await Get.to(() => EditProfilePage());
-                              loadUserProfile(); // تحديث البيانات بعد العودة
+                              final result =
+                                  await Get.to(() => EditProfilePage());
+                              if (result == true) {
+                                loadUserProfile(); // إعادة تحميل البيانات بعد التحديث
+                              }
                             },
                             child: Text(
                               'Edit Profile',
