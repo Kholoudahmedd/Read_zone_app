@@ -45,11 +45,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
 
       final data = response.data;
-      if (!mounted) return;
       setState(() {
         _usernameController.text = data['username'] ?? '';
         _emailController.text = data['email'] ?? '';
-        currentImageUrl = data['profileImageUrl'];
+        currentImageUrl = data['profileImage'];
       });
     } catch (e) {
       print('Error fetching profile: $e');
@@ -60,27 +59,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final pickedFile =
         await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      final imageFile = File(pickedFile.path);
-      if (!mounted) return;
       setState(() {
-        _selectedImage = imageFile;
+        _selectedImage = File(pickedFile.path);
       });
-
-      final uploadedUrl = await _uploadImage(imageFile);
-
-      if (!mounted) return;
-      if (uploadedUrl != null && uploadedUrl.isNotEmpty) {
-        setState(() {
-          currentImageUrl = uploadedUrl;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile image uploaded successfully')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload image')),
-        );
-      }
     }
   }
 
@@ -91,7 +72,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     try {
       final fileName = imageFile.path.split('/').last;
       final formData = FormData.fromMap({
-        "image":
+        "Image":
             await MultipartFile.fromFile(imageFile.path, filename: fileName),
       });
 
@@ -101,7 +82,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      return response.data['imageUrl'];
+      return response.data['Image']; // لاحظ أن الباكند يرجع المفتاح "Image"
     } catch (e) {
       print('Error uploading image: $e');
       return null;
@@ -132,7 +113,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
 
       if (uploadedImageUrl != null && uploadedImageUrl.isNotEmpty) {
-        updateData["profileImageUrl"] = uploadedImageUrl;
+        updateData["profileImage"] = uploadedImageUrl;
       }
 
       final response = await _dio.put(
@@ -140,18 +121,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         data: updateData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
-      if (!mounted) return;
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Profile updated successfully')),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true); // ✅ رجع true عند نجاح التحديث
       } else {
         throw Exception('Update failed with status: ${response.statusCode}');
       }
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update profile: $e')),
       );
@@ -224,7 +202,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 children: [
                   buildInputField("Username", _usernameController),
                   buildInputField("Email", _emailController, readOnly: true),
-                  // Uncomment if you want to allow password change
+                  // إذا أردت تفعيل تعديل كلمة السر أزل التعليق من السطر التالي:
                   // buildInputField("Password", _passwordController, isPassword: true),
                   const SizedBox(height: 20),
                   ElevatedButton(
