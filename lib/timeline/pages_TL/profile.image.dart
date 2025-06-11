@@ -19,7 +19,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   String? username;
   String? email;
-  String userImage = 'assets/images/test.jpg'; // صورة ثابتة مؤقتًا
+  String userImage = 'assets/images/test.jpg'; // صورة افتراضية مؤقتًا
 
   bool isLoading = true;
 
@@ -44,7 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
         isLoading = false;
       });
     } else {
-      print("ERORR: Failed to load user profile");
+      print("ERROR: Failed to load user profile");
       setState(() {
         isLoading = false;
       });
@@ -128,8 +128,9 @@ class _ProfilePageState extends State<ProfilePage> {
                           ),
                           const SizedBox(height: 20),
                           MaterialButton(
-                            onPressed: () {
-                              Get.to(() => EditProfilePage());
+                            onPressed: () async {
+                              await Get.to(() => EditProfilePage());
+                              loadUserProfile(); // تحديث البيانات بعد العودة
                             },
                             child: Text(
                               'Edit Profile',

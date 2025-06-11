@@ -113,7 +113,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       };
 
       await _dio.put(
-        '$baseUrl/Auth/update-profile',
+        '$baseUrl/Auth/update-username',
         data: updateData,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
@@ -193,10 +193,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 children: [
-                  buildInputField("Username", _usernameController),
-                  buildInputField("Email", _emailController),
-                  buildInputField("Password", _passwordController,
-                      isPassword: true),
+                  buildInputField(
+                    "Username",
+                    _usernameController,
+                  ),
+                  buildInputField("Email", _emailController, readOnly: true),
+                  // buildInputField("Password", _passwordController,
+                  //     isPassword: true),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _updateProfile,
@@ -229,6 +232,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String label,
     TextEditingController controller, {
     bool isPassword = false,
+    bool readOnly = false,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15),
@@ -237,13 +241,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
         child: TextField(
           controller: controller,
           obscureText: isPassword,
+          readOnly: readOnly,
           style: TextStyle(color: getTextColor2(context)),
           decoration: InputDecoration(
             labelText: label,
             labelStyle: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: getTextColor2(context)),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: getTextColor2(context),
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
               borderSide: BorderSide(color: getGreenColor(context)),
