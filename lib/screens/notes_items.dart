@@ -51,12 +51,9 @@ class NotesItems extends StatelessWidget {
                       : const Color(0xffFFCCC6),
                 ),
                 child: Obx(() {
-                  // Check if data is still loading
                   if (notesController.isLoading.value) {
-                    return Center(
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
+                    return const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
                     );
                   }
 
@@ -86,21 +83,21 @@ class NotesItems extends StatelessWidget {
                           itemCount: notesController.notes.length,
                           gridDelegate:
                               const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 250, // Makes width adaptive
+                            maxCrossAxisExtent: 250,
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
-                            childAspectRatio: 0.8, // Adjusts based on text
+                            childAspectRatio: 0.8,
                           ),
                           itemBuilder: (context, index) {
                             return GestureDetector(
-                              onTap: () {
-                                Get.to(
-                                  () => WriteNote(
+                              onTap: () async {
+                                final result = await Get.to(() => WriteNote(
                                       docId: notesController.notes[index]["id"],
-                                      note: notesController.notes[index].map(
-                                          (key, value) =>
-                                              MapEntry(key, value.toString()))),
-                                );
+                                      note: notesController.notes[index],
+                                    ));
+                                if (result == true) {
+                                  await notesController.loadNotes();
+                                }
                               },
                               child:
                                   NoteCard(note: notesController.notes[index]),
@@ -115,8 +112,11 @@ class NotesItems extends StatelessWidget {
 
         // Floating Button to Add Notes
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Get.to(() => const WriteNote());
+          onPressed: () async {
+            final result = await Get.to(() => const WriteNote());
+            if (result == true) {
+              await notesController.loadNotes();
+            }
           },
           backgroundColor:
               isDarkMode ? const Color(0xffE4B5AF) : const Color(0xffFF9A8D),
@@ -139,7 +139,6 @@ class NoteCard extends StatelessWidget {
     final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return IntrinsicHeight(
-      // Ensures dynamic height
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -158,7 +157,7 @@ class NoteCard extends StatelessWidget {
           children: [
             const SizedBox(height: 5),
             Text(
-              note["title"]!,
+              note["title"] ?? "",
               style: GoogleFonts.inter(
                 fontWeight: FontWeight.w900,
                 fontSize: 28,
@@ -170,7 +169,7 @@ class NoteCard extends StatelessWidget {
             const SizedBox(height: 10),
             Expanded(
               child: Text(
-                note["content"]!,
+                note["content"] ?? "",
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: Colors.white,

@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:read_zone_app/widgets/text_fields.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:read_zone_app/screens/login_screen.dart';
 
 class ResetPassword extends StatefulWidget {
-  const ResetPassword({super.key, required String email});
+  final String email;
+  final String otp;
+
+  const ResetPassword({Key? key, required this.email, required this.otp}) : super(key: key);
 
   @override
   State<ResetPassword> createState() => _ResetPasswordState();
@@ -13,14 +17,53 @@ class ResetPassword extends StatefulWidget {
 
 class _ResetPasswordState extends State<ResetPassword> {
   final TextEditingController newPasswordController = TextEditingController();
-  final TextEditingController confirmPasswordController =
-      TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
     newPasswordController.dispose();
     confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> resetPassword() async {
+    final newPassword = newPasswordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+
+    if (newPassword != confirmPassword) {
+      Get.snackbar("Error", "Passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Get.snackbar("Error", "Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      final dio = Dio();
+      final response = await dio.post(
+        'https://myfirstapi.runasp.net/api/Auth/reset-password',
+        data: {
+          "email": widget.email,
+          "otp": widget.otp,
+          "newPassword": newPassword,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        Get.snackbar("Success", "Password has been reset successfully");
+        Get.offAll(() => const Loginscreen());
+      } else {
+        Get.snackbar("Error", "Failed to reset password");
+      }
+    } on DioException catch (e) {
+      String error = "Something went wrong";
+      if (e.response != null && e.response?.data != null) {
+        error = e.response?.data.toString() ?? error;
+      }
+      Get.snackbar("Error", error);
+    }
   }
 
   @override
@@ -64,45 +107,7 @@ class _ResetPasswordState extends State<ResetPassword> {
               hoverColor: const Color(0xffFF9A8C),
               minWidth: MediaQuery.of(context).size.width * 0.9,
               height: 60,
-              onPressed: () async {
-                final newPassword = newPasswordController.text.trim();
-                final confirmPassword = confirmPasswordController.text.trim();
-
-                if (newPassword != confirmPassword) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Passwords do not match')),
-                  );
-                  return;
-                }
-
-                if (newPassword.length < 6) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content:
-                            Text('Password must be at least 6 characters')),
-                  );
-                  return;
-                }
-
-                try {
-                  await FirebaseAuth.instance.currentUser!
-                      .updatePassword(newPassword);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Password updated successfully')),
-                  );
-
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => Loginscreen()),
-                    (route) => false,
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: ${e.toString()}')),
-                  );
-                }
-              },
+              onPressed: resetPassword,
               color: Theme.of(context).brightness == Brightness.dark
                   ? const Color(0xffC86B60)
                   : const Color(0xffFF9A8C),

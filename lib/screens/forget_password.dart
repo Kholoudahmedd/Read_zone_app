@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,6 +16,11 @@ class ForgetPassword extends StatefulWidget {
 class _ForgetPasswordState extends State<ForgetPassword> {
   final TextEditingController emailController = TextEditingController();
   bool isEmailValid = false;
+  bool isLoading = false;
+  bool canResendOtp = true;
+  int resendTimeout = 60;
+  Timer? resendTimer;
+  final Dio _dio = Dio();
 
   void validateEmail(String email) {
     setState(() {
@@ -25,19 +32,109 @@ class _ForgetPasswordState extends State<ForgetPassword> {
   @override
   void dispose() {
     emailController.dispose();
+    resendTimer?.cancel();
+    _dio.close();
     super.dispose();
+  }
+
+  void startResendTimer() {
+    setState(() {
+      canResendOtp = false;
+      resendTimeout = 60;
+    });
+
+    resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (resendTimeout > 0) {
+        setState(() {
+          resendTimeout--;
+        });
+      } else {
+        timer.cancel();
+        setState(() {
+          canResendOtp = true;
+        });
+      }
+    });
   }
 
   Future<bool> sendOtpViaApi(String email) async {
     try {
-      final response = await Dio().post(
+      setState(() {
+        isLoading = true;
+      });
+
+      final response = await _dio.post(
         'https://myfirstapi.runasp.net/api/Auth/forgot-password',
-        data: {'email': email},
+        data: {'Email': email},
+        options: Options(
+          headers: {'Content-Type': 'application/json'},
+        ),
       );
 
-      return response.statusCode == 200 && response.data == true;
-    } catch (e) {
+      if (response.statusCode == 200) {
+        // Handle different response formats
+        final responseData = response.data;
+
+        if (responseData is Map) {
+          // If response is JSON object
+          if (responseData.containsKey('message')) {
+            Get.snackbar(
+              "Success",
+              responseData['message'].toString(),
+              snackPosition: SnackPosition.BOTTOM,
+              colorText: Colors.white,
+            );
+          }
+        } else if (responseData is String) {
+          // If response is plain text
+          Get.snackbar(
+            "Success",
+            responseData,
+            snackPosition: SnackPosition.BOTTOM,
+            colorText: Colors.white,
+          );
+        }
+
+        startResendTimer();
+        return true;
+      } else {
+        throw Exception(
+            'Server responded with status code ${response.statusCode}');
+      }
+    } on DioError catch (e) {
+      String errorMessage = "Failed to connect to server";
+
+      if (e.response != null) {
+        // Handle different error response formats
+        if (e.response!.data is Map) {
+          errorMessage = e.response!.data['message']?.toString() ??
+              e.response!.data.toString();
+        } else {
+          errorMessage = e.response!.data?.toString() ?? errorMessage;
+        }
+      } else {
+        errorMessage = e.message ?? errorMessage;
+      }
+
+      Get.snackbar(
+        "Error",
+        "An unexpected error occurred , please try again later",
+        snackPosition: SnackPosition.BOTTOM,
+        colorText: Colors.white,
+      );
       return false;
+    } catch (e) {
+      // Get.snackbar(
+      //   "Error",
+      //   "An unexpected error occurred",
+      //   snackPosition: SnackPosition.BOTTOM,
+      //   colorText: Colors.white,
+      // );
+      return false;
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -68,7 +165,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
             Padding(
               padding: const EdgeInsets.only(left: 30, right: 20, top: 10),
               child: Text(
-                'Please enter the email address you’d like your password reset information sent to',
+                'Please enter the email address you\'d like your password reset information sent to',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: Theme.of(context).brightness == Brightness.dark
@@ -101,51 +198,54 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                 ),
               ),
             ),
-            const SizedBox(height: 80),
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                canResendOtp
+                    ? ''
+                    : 'You can request a new OTP in $resendTimeout seconds',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             Center(
               child: MaterialButton(
                 hoverColor: const Color(0xffFF9A8C),
                 minWidth: MediaQuery.of(context).size.width * 0.9,
                 height: 60,
-                onPressed: isEmailValid
+                onPressed: isEmailValid && !isLoading && canResendOtp
                     ? () async {
                         bool success =
                             await sendOtpViaApi(emailController.text.trim());
                         if (success) {
-                          Get.snackbar(
-                            "OTP Sent",
-                            "An OTP has been sent to your email.",
-                            snackPosition: SnackPosition.BOTTOM,
-                            colorText: Colors.white,
-                          );
-                          Get.to(() => OtpScreen(
-                              userEmail: emailController.text.trim()));
-                        } else {
-                          Get.snackbar(
-                            "Error",
-                            "Failed to send OTP. Please check your email or try again later.",
-                            snackPosition: SnackPosition.BOTTOM,
-                            colorText: Colors.white,
-                          );
+                          Get.to(() =>
+                              OtpScreen(email: emailController.text.trim()));
                         }
                       }
                     : null,
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? const Color(0xffC86B60)
-                    : const Color(0xffFF9A8C),
+                color: isEmailValid && !isLoading && canResendOtp
+                    ? Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xffC86B60)
+                        : const Color(0xffFF9A8C)
+                    : Colors.grey,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(50),
                 ),
-                child: Text(
-                  'Submit',
-                  style: GoogleFonts.inter(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        canResendOtp ? 'Submit' : 'Please wait',
+                        style: GoogleFonts.inter(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
-            SizedBox(height: MediaQuery.of(context).size.height * 0.16),
+            SizedBox(height: MediaQuery.of(context).size.height * 0.2),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

@@ -4,8 +4,8 @@ import 'package:read_zone_app/controllers/notes_controller.dart';
 import 'package:read_zone_app/themes/colors.dart';
 
 class WriteNote extends StatefulWidget {
-  final String? docId; // إذا كنت تقوم بتعديل ملاحظة موجودة في Firestore
-  final Map<String, String>? note;
+  final int? docId; // ID من API
+  final Map<String, dynamic>? note;
 
   const WriteNote({super.key, this.docId, this.note});
 
@@ -22,9 +22,28 @@ class _WriteNoteState extends State<WriteNote> {
   void initState() {
     super.initState();
     if (widget.note != null) {
-      _titleController.text = widget.note!['title']!;
-      _contentController.text = widget.note!['content']!;
+      _titleController.text = widget.note!['title'] ?? '';
+      _contentController.text = widget.note!['content'] ?? '';
     }
+  }
+
+  void _saveNote() async {
+    String title = _titleController.text.trim();
+    String content = _contentController.text.trim();
+
+    if (title.isEmpty && content.isEmpty) {
+      Get.snackbar('خطأ', 'يرجى إدخال عنوان أو محتوى');
+      return;
+    }
+
+    if (widget.docId == null) {
+      await notesController.addNote(title, content);
+    } else {
+      await notesController.updateNote(widget.docId!, title, content);
+    }
+
+    // ارجع مع إشارة إلى أن البيانات تغيّرت
+    Get.back(result: true);
   }
 
   @override
@@ -34,7 +53,6 @@ class _WriteNoteState extends State<WriteNote> {
         appBar: AppBar(
           elevation: 0,
           backgroundColor: Colors.transparent,
-          scrolledUnderElevation: 0,
           leading: IconButton(
             icon: Icon(Icons.arrow_back, color: getRedColor(context)),
             onPressed: () => Get.back(),
@@ -47,10 +65,10 @@ class _WriteNoteState extends State<WriteNote> {
           actions: widget.docId != null
               ? [
                   IconButton(
-                    icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      notesController.deleteNote(widget.docId!);
-                      Get.back();
+                    icon: Icon(Icons.delete, color: getRedColor(context)),
+                    onPressed: () async {
+                      await notesController.deleteNote(widget.docId!);
+                      Get.back(result: true);
                     },
                   )
                 ]
@@ -67,7 +85,7 @@ class _WriteNoteState extends State<WriteNote> {
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
                     color: getTextColor2(context)),
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'Title',
                   border: InputBorder.none,
                 ),
@@ -78,7 +96,7 @@ class _WriteNoteState extends State<WriteNote> {
                   controller: _contentController,
                   maxLines: null,
                   keyboardType: TextInputType.multiline,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Type something...',
                     border: InputBorder.none,
                   ),
@@ -88,19 +106,10 @@ class _WriteNoteState extends State<WriteNote> {
           ),
         ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            if (widget.docId == null) {
-              notesController.addNote(
-                  _titleController.text, _contentController.text);
-            } else {
-              notesController.updateNote(
-                  widget.docId!, _titleController.text, _contentController.text);
-            }
-            Get.back();
-          },
+          onPressed: _saveNote,
           backgroundColor: getRedColor(context),
-          child: Icon(Icons.check, color: Colors.white, size: 50),
-          shape: CircleBorder(),
+          child: const Icon(Icons.check, color: Colors.white, size: 50),
+          shape: const CircleBorder(),
         ),
       ),
     );
