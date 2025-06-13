@@ -138,6 +138,7 @@ class _HomepageState extends State<Homepage> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: getRedColor(context)))
                           : CircleAvatar(
+                              backgroundColor: getRedColor(context),
                               backgroundImage: userImageHeader != null
                                   ? NetworkImage(userImageHeader!)
                                   : const AssetImage('assets/images/test.jpg')
@@ -345,6 +346,7 @@ class _UserHeaderState extends State<UserHeader> {
                   color: getRedColor(context),
                 )
               : CircleAvatar(
+                  backgroundColor: getRedColor(context),
                   backgroundImage: userImage != null
                       ? NetworkImage(userImage!)
                       : const AssetImage('assets/images/test.jpg')

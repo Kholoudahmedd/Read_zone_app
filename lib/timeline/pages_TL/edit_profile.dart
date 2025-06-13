@@ -48,7 +48,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() {
         _usernameController.text = data['username'] ?? '';
         _emailController.text = data['email'] ?? '';
-        currentImageUrl = data['profileImage'];
+        currentImageUrl = data['profileImageUrl'];
       });
     } catch (e) {
       print('Error fetching profile: $e');
@@ -168,6 +168,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ],
                   ),
                   child: CircleAvatar(
+                    backgroundColor: getGreenColor(context),
                     radius: 60,
                     backgroundImage: _selectedImage != null
                         ? FileImage(_selectedImage!)
