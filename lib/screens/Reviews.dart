@@ -1,14 +1,21 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:read_zone_app/screens/rating_and_reviews_empty.dart';
+import 'package:read_zone_app/services/auth_service.dart';
 import 'package:read_zone_app/themes/colors.dart';
+import 'package:read_zone_app/widgets/Review_content.dart';
 import 'package:readmore/readmore.dart';
 import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 
 class Reviews extends StatefulWidget {
   final Map<String, dynamic> bookData;
+  final String title;
+  final int bookId;
+  final String author;
 
   const Reviews({
     super.key,
@@ -17,10 +24,6 @@ class Reviews extends StatefulWidget {
     required this.title,
     required this.author,
   });
-
-  final String title;
-  final int bookId;
-  final String author;
 
   @override
   State<Reviews> createState() => _ReviewsState();
@@ -31,8 +34,15 @@ class _ReviewsState extends State<Reviews> {
   double averageRating = 0.0;
   List<double> ratingDistribution = [0, 0, 0, 0, 0];
   bool isLoading = true;
+  String? username;
+  String? email;
+  String? userImage;
+
+  final String baseUrl = 'https://myfirstapi.runasp.net/';
+
   final Dio dio =
       Dio(BaseOptions(baseUrl: 'https://myfirstapi.runasp.net/api'));
+  final storage = GetStorage();
 
   @override
   void initState() {
@@ -40,25 +50,59 @@ class _ReviewsState extends State<Reviews> {
     _loadReviews();
   }
 
+  void loadUserProfile() async {
+    final authService = AuthService();
+    final profile = await authService.getProfile();
+
+    if (!mounted) return;
+
+    if (profile != null) {
+      final profileImage = profile['profileImageUrl'];
+      setState(() {
+        username = profile['username'];
+        email = profile['email'];
+        userImage = profileImage != null && profileImage != ''
+            ? '$baseUrl$profileImage'
+            : null;
+        isLoading = false;
+      });
+    } else {
+      print("ERROR: Failed to load user profile");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadReviews() async {
     if (!mounted) return;
     setState(() => isLoading = true);
 
     try {
-      final response = await dio.get('/reviews/${widget.bookId}');
+      final token = storage.read('token');
+      final response = await dio.get(
+        '/reviews/book/${widget.bookId}',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
       final List data = response.data;
 
       List<Map<String, dynamic>> fetchedReviews = data.map((review) {
         return {
-          "userName": review['userName'] ?? "Unknown user",
-          "profileImage": review['profileImage'] ?? 'assets/images/test.jpg',
-          "review": review["review"] ?? "",
+          "userName": review['user']?['username'] ?? "Unknown user",
+          "profileImage": review['user']?['profileImageUrl'] ??
+              'https://yourdomain.com/default_profile.png',
+          "review": review["feedback"] ?? "",
           "rating": (review["rating"] ?? 0.0).toDouble(),
-          "time": DateTime.parse(review["time"] ?? DateTime.now().toString()),
-          "userId": review["userId"] ?? "",
-          "reviewId": review["id"] ?? "",
+          "time":
+              DateTime.parse(review["createdAt"] ?? DateTime.now().toString()),
+          "userId": review["user"]?['id'],
+          "reviewId": review["id"],
         };
       }).toList();
+      fetchedReviews.sort((a, b) => b['time'].compareTo(a['time']));
 
       if (!mounted) return;
       setState(() {
@@ -96,8 +140,14 @@ class _ReviewsState extends State<Reviews> {
 
   void _deleteReview(int index) async {
     try {
-      String reviewId = reviews[index]['reviewId'];
-      await dio.delete('/reviews/$reviewId');
+      final token = storage.read('token');
+      String reviewId = reviews[index]['reviewId'].toString();
+      await dio.delete(
+        '/reviews/$reviewId',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
       setState(() {
         reviews.removeAt(index);
         _calculateAverageRating();
@@ -220,8 +270,7 @@ class _ReviewsState extends State<Reviews> {
                                 reviewText: review['review'],
                                 rating: review['rating'],
                                 time: review['time'],
-                                profileImage: review['profileImage'] ??
-                                    'assets/images/default.jpg',
+                                profileImage: review['profileImage'],
                                 onDelete: () => _deleteReview(index),
                               );
                             }),
@@ -234,112 +283,10 @@ class _ReviewsState extends State<Reviews> {
                       bottom: 20,
                       left: 20,
                       right: 20,
-                      child: reviewbutton(), // تأكد أن هذا الودجت معرف لديك
+                      child: ReviewButton(bookExternalId: widget.bookId),
                     ),
                   ],
                 ),
-    );
-  }
-}
-
-class ReviewContent extends StatelessWidget {
-  final String userName;
-  final String reviewText;
-  final double rating;
-  final DateTime time;
-  final String profileImage;
-  final VoidCallback onDelete;
-
-  const ReviewContent({
-    required this.userName,
-    required this.reviewText,
-    required this.rating,
-    required this.time,
-    required this.profileImage,
-    required this.onDelete,
-    super.key,
-  });
-
-  String formatTime(DateTime reviewTime) {
-    try {
-      Duration diff = DateTime.now().difference(reviewTime);
-
-      if (diff.inSeconds < 60) return "Just now";
-      if (diff.inMinutes < 60) return "${diff.inMinutes} min ago";
-      if (diff.inHours < 24) return "${diff.inHours} hrs ago";
-      if (diff.inDays < 7) return "${diff.inDays} days ago";
-      if (diff.inDays < 30) return "${(diff.inDays / 7).floor()} weeks ago";
-      if (diff.inDays < 365) return "${(diff.inDays / 30).floor()} months ago";
-      return "${(diff.inDays / 365).floor()} years ago";
-    } catch (e) {
-      return "Unknown time";
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundImage: profileImage.startsWith('http')
-                    ? NetworkImage(profileImage)
-                    : AssetImage(profileImage) as ImageProvider,
-              ),
-              SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(userName,
-                      style: GoogleFonts.inter(
-                          fontSize: 18, fontWeight: FontWeight.w600)),
-                  Row(
-                    children: [
-                      RatingBarIndicator(
-                        itemBuilder: (_, __) =>
-                            Icon(Iconsax.star1, color: getRedColor(context)),
-                        itemCount: 5,
-                        rating: rating,
-                        itemSize: 15,
-                      ),
-                      SizedBox(width: 5),
-                      Text(formatTime(time),
-                          style: GoogleFonts.inter(fontSize: 15)),
-                    ],
-                  ),
-                ],
-              ),
-              Spacer(),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'delete') onDelete();
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                      value: 'delete',
-                      child: Text('Delete',
-                          style: TextStyle(color: getRedColor(context)))),
-                ],
-                icon: Icon(Icons.more_vert),
-              ),
-            ],
-          ),
-          SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: ReadMoreText(
-              reviewText,
-              trimLines: 2,
-              style: GoogleFonts.poppins(fontSize: 16),
-            ),
-          ),
-          Divider(thickness: 1),
-        ],
-      ),
     );
   }
 }

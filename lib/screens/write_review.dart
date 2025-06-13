@@ -4,10 +4,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:dio/dio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get_storage/get_storage.dart';
 
 class WriteReviewScreen extends StatefulWidget {
-  const WriteReviewScreen({super.key});
+  final int bookExternalId;
+
+  const WriteReviewScreen({super.key, required this.bookExternalId});
 
   @override
   State<WriteReviewScreen> createState() => _WriteReviewScreenState();
@@ -17,38 +19,34 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
   double rating = 0;
   final TextEditingController reviewController = TextEditingController();
   final Dio dio = Dio();
+  final box = GetStorage();
 
   Future<void> submitReview() async {
-    if (reviewController.text.isNotEmpty && rating > 0) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String? userId = prefs.getString('userId');
-      String? userName = prefs.getString('userName') ?? 'Anonymous User';
+    final token = box.read('token'); // Assuming you store JWT token here
 
-      if (userId == null) {
-        showSnackBar('Please log in to submit a review');
-        return;
-      }
-
+    if (reviewController.text.isNotEmpty && rating > 0 && token != null) {
       Map<String, dynamic> newReview = {
-        'userId': userId,
-        'userName': userName,
-        'review': reviewController.text,
+        'bookExternalId': widget.bookExternalId,
         'rating': rating,
+        'feedback': reviewController.text,
       };
 
       try {
         Response response = await dio.post(
-          'https://yourapi.com/api/reviews',
+          'https://myfirstapi.runasp.net/api/Reviews',
           data: newReview,
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          ),
         );
 
         if (response.statusCode == 200 || response.statusCode == 201) {
           showSnackBar('Review Submitted Successfully!');
-
-          setState(() {
-            reviewController.clear();
-            rating = 0;
-          });
+          await Future.delayed(const Duration(seconds: 1));
+          Navigator.pop(context, true); // ✅ نرجع true للتحديث
         } else {
           showSnackBar('Error: ${response.statusMessage}');
         }
@@ -56,7 +54,9 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
         showSnackBar('Error submitting review: $e');
       }
     } else {
-      showSnackBar('Please write a review and select a rating');
+      showSnackBar(token == null
+          ? 'Please log in first'
+          : 'Please write a review and select a rating');
     }
   }
 
@@ -64,10 +64,10 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(50)),
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         elevation: 20,
         behavior: SnackBarBehavior.floating,
-        margin: EdgeInsets.all(20),
+        margin: const EdgeInsets.all(20),
         content: Text(message),
       ),
     );
@@ -81,7 +81,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
         scrolledUnderElevation: 0,
         backgroundColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios),
+          icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -99,7 +99,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 50),
+              const SizedBox(height: 50),
               Text(
                 'Rate the book',
                 style: GoogleFonts.inter(
@@ -108,7 +108,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                   color: getTextColor2(context),
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               RatingBar.builder(
                 initialRating: rating,
                 minRating: 1,
@@ -116,7 +116,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                 allowHalfRating: true,
                 itemCount: 5,
                 itemSize: 50,
-                itemPadding: EdgeInsets.symmetric(horizontal: 11),
+                itemPadding: const EdgeInsets.symmetric(horizontal: 11),
                 itemBuilder: (context, _) => Icon(
                   Iconsax.star1,
                   color: getRedColor(context),
@@ -127,7 +127,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                   });
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Text(
                 'Can you tell us more?',
                 style: GoogleFonts.inter(
@@ -136,7 +136,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                   color: getTextColor2(context),
                 ),
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               TextField(
                 controller: reviewController,
                 maxLines: 10,
@@ -144,16 +144,16 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                   hintText: 'Add feedback ...',
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey),
+                    borderSide: const BorderSide(color: Colors.grey),
                   ),
-                  contentPadding: EdgeInsets.all(12),
+                  contentPadding: const EdgeInsets.all(12),
                 ),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Center(
                 child: ElevatedButton(
                   onPressed: submitReview,
@@ -162,7 +162,8 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(50),
                     ),
-                    padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 50),
                   ),
                   child: Text(
                     'Submit Review',

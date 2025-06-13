@@ -5,12 +5,14 @@ import 'package:read_zone_app/themes/colors.dart';
 class DescriptionPage extends StatefulWidget {
   final Map<String, dynamic> bookData;
 
-  const DescriptionPage(
-      {super.key,
-      required this.bookId,
-      required this.title,
-      required this.author,
-      required this.bookData});
+  const DescriptionPage({
+    super.key,
+    required this.bookId,
+    required this.title,
+    required this.author,
+    required this.bookData,
+  });
+
   final int bookId;
   final String title;
   final String author;
@@ -26,7 +28,6 @@ class _DescriptionPageState extends State<DescriptionPage> {
   Widget build(BuildContext context) {
     final textColor = getTextColor2(context);
     final redColor = getRedColor(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -40,20 +41,16 @@ class _DescriptionPageState extends State<DescriptionPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            // Book Title and Author
             _buildBookHeader(redColor),
             const SizedBox(height: 40),
-            // About the Author Section
             _buildSectionHeader('About the author', textColor),
             const SizedBox(height: 10),
             _buildAuthorInfo(),
             const SizedBox(height: 30),
-            // Overview Section
             _buildSectionHeader('Overview', textColor),
             const SizedBox(height: 10),
             _buildBookOverview(),
             const SizedBox(height: 30),
-            // Additional Info Section
           ],
         ),
       ),
@@ -72,6 +69,8 @@ class _DescriptionPageState extends State<DescriptionPage> {
               color: color,
             ),
             textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
           const SizedBox(height: 8),
           Text(
@@ -99,8 +98,12 @@ class _DescriptionPageState extends State<DescriptionPage> {
   }
 
   Widget _buildAuthorInfo() {
+    String authorName = widget.author;
+    String authorBio =
+        '$authorName is a distinguished author known for their unique voice and deep insights into the human experience. Through years of writing, $authorName has crafted stories that resonate with readers around the world, offering both inspiration and reflection.';
+
     return Text(
-      widget.bookData['authorBio'] ?? 'No author information available.',
+      authorBio,
       style: GoogleFonts.inter(
         fontSize: 14,
         height: 1.5,
@@ -109,18 +112,20 @@ class _DescriptionPageState extends State<DescriptionPage> {
   }
 
   Widget _buildBookOverview() {
+    String bookTitle = widget.title;
+    String overview =
+        '$bookTitle is a thought-provoking and emotionally engaging book that captures the essence of storytelling. It takes readers on a journey through vivid characters, rich plots, and powerful themes, making it a must-read for those who seek both entertainment and insight.';
+
     return Column(
       children: [
         Text(
-          _isExpanded
-              ? widget.bookData['description'] ?? 'No description available.'
-              : '${widget.bookData['description']?.substring(0, 150) ?? 'No description available.'}...',
+          _isExpanded ? overview : '${overview.substring(0, 150)}...',
           style: GoogleFonts.inter(
             fontSize: 14,
             height: 1.5,
           ),
         ),
-        if ((widget.bookData['description']?.length ?? 0) > 150)
+        if (overview.length > 150)
           TextButton(
             onPressed: () => setState(() => _isExpanded = !_isExpanded),
             child: Text(

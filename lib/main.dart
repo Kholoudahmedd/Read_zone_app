@@ -66,7 +66,7 @@ class ReadZoneApp extends StatelessWidget {
         GetPage(name: '/home', page: () => const Homepage()),
         GetPage(name: '/onboarding', page: () => const OnBoarding()),
         GetPage(name: '/welcome', page: () => const WelcomeScreen()),
-        GetPage(name: '/writeReview', page: () => const WriteReviewScreen()),
+        // GetPage(name: '/writeReview', page: () => const WriteReviewScreen(bookExternalId: widget.bookId,)),
         GetPage(name: '/login', page: () => const Loginscreen()),
       ];
 

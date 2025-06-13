@@ -5,6 +5,8 @@ import 'package:read_zone_app/screens/description_page.dart';
 import 'package:read_zone_app/screens/rating_and_reviews_empty.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 
 class RatingPage extends StatefulWidget {
   const RatingPage({
@@ -23,14 +25,19 @@ class RatingPage extends StatefulWidget {
 }
 
 class _RatingPageState extends State<RatingPage> {
-  bool isDarkMode = false; // الوضع الافتراضي
-  List<String> reviews = []; // قائمة التقييمات (كمثال)
+  bool isDarkMode = false;
+  List<Map<String, dynamic>> reviews = [];
+  bool isLoading = true;
+
+  final Dio dio =
+      Dio(BaseOptions(baseUrl: 'https://myfirstapi.runasp.net/api'));
+  final storage = GetStorage();
 
   @override
   void initState() {
     super.initState();
     _loadTheme();
-    _loadReviews(); // تحميل التقييمات عند فتح الصفحة
+    _fetchReviews();
   }
 
   void _loadTheme() {
@@ -41,11 +48,34 @@ class _RatingPageState extends State<RatingPage> {
     });
   }
 
-  void _loadReviews() {
-    // هنا يمكنك استبدال الكود بتحميل التقييمات من API أو قاعدة بيانات
-    setState(() {
-      reviews = []; // مثال على بيانات موجودة
-    });
+  Future<void> _fetchReviews() async {
+    try {
+      final token = storage.read('token');
+      final response = await dio.get(
+        '/reviews/book/${widget.bookId}',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      );
+
+      final List data = response.data;
+      setState(() {
+        reviews = data.map<Map<String, dynamic>>((review) {
+          return {
+            "userName": review['user']?['username'] ?? "Unknown user",
+            "profileImage": review['user']?['profileImageUrl'] ?? "",
+            "review": review["feedback"] ?? "",
+            "rating": (review["rating"] ?? 0.0).toDouble(),
+            "time": DateTime.parse(
+                review["createdAt"] ?? DateTime.now().toString()),
+          };
+        }).toList();
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching reviews: $e");
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -94,28 +124,31 @@ class _RatingPageState extends State<RatingPage> {
               ),
             ),
           ),
-          body: TabBarView(
-            children: [
-              reviews.isEmpty
-                  ? RatingAndReviewsEmpty(
+          body: isLoading
+              ? Center(
+                  child: CircularProgressIndicator(color: getRedColor(context)))
+              : TabBarView(
+                  children: [
+                    reviews.isEmpty
+                        ? RatingAndReviewsEmpty(
+                            bookId: widget.bookId,
+                            title: widget.title,
+                            author: widget.author,
+                          )
+                        : Reviews(
+                            bookData: {},
+                            bookId: widget.bookId,
+                            title: widget.title,
+                            author: widget.author,
+                          ),
+                    DescriptionPage(
                       bookId: widget.bookId,
                       title: widget.title,
                       author: widget.author,
-                    )
-                  : Reviews(
                       bookData: {},
-                      bookId: widget.bookId,
-                      title: widget.title,
-                      author: widget.author,
-                    ), // ✅ التحقق من وجود التقييمات
-              DescriptionPage(
-                bookId: widget.bookId,
-                title: widget.title,
-                author: widget.author,
-                bookData: {},
-              ),
-            ],
-          ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
