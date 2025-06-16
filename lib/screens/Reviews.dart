@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,7 +6,6 @@ import 'package:read_zone_app/screens/rating_and_reviews_empty.dart';
 import 'package:read_zone_app/services/auth_service.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:read_zone_app/widgets/Review_content.dart';
-import 'package:readmore/readmore.dart';
 import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
 

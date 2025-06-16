@@ -17,9 +17,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   File? _selectedImage;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
-  String? currentImageUrl = '';
+  String? currentImageUrl;
   final Dio _dio = Dio();
   final String baseUrl = 'https://myfirstapi.runasp.net/api';
   final box = GetStorage();
@@ -30,21 +28,27 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _loadUserProfile();
   }
 
-  String? getToken() {
-    return box.read('token');
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    super.dispose();
   }
+
+  String? getToken() => box.read('token');
 
   Future<void> _loadUserProfile() async {
     final token = getToken();
     if (token == null) return;
 
     try {
-      final response = await _dio.get(
+      final resp = await _dio.get(
         '$baseUrl/Auth/profile',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      final data = response.data;
+      if (!mounted) return;
+      final data = resp.data;
       setState(() {
         _usernameController.text = data['username'] ?? '';
         _emailController.text = data['email'] ?? '';
@@ -56,33 +60,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        _selectedImage = File(pickedFile.path);
-      });
+    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (picked != null && mounted) {
+      setState(() => _selectedImage = File(picked.path));
     }
   }
 
-  Future<String?> _uploadImage(File imageFile) async {
+  Future<String?> _uploadImage(File file) async {
     final token = getToken();
     if (token == null) return null;
 
     try {
-      final fileName = imageFile.path.split('/').last;
-      final formData = FormData.fromMap({
-        "Image":
-            await MultipartFile.fromFile(imageFile.path, filename: fileName),
+      final name = file.path.split('/').last;
+      final form = FormData.fromMap({
+        'Image': await MultipartFile.fromFile(file.path, filename: name),
       });
 
-      final response = await _dio.post(
+      final resp = await _dio.post(
         '$baseUrl/Auth/upload-profile-image',
-        data: formData,
+        data: form,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-
-      return response.data['Image']; // لاحظ أن الباكند يرجع المفتاح "Image"
+      return resp.data['imageUrl'] as String?;
     } catch (e) {
       print('Error uploading image: $e');
       return null;
@@ -94,52 +93,51 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (token == null) return;
 
     try {
-      String? uploadedImageUrl = currentImageUrl;
-
       if (_selectedImage != null) {
-        final imageUrl = await _uploadImage(_selectedImage!);
-        if (imageUrl != null && imageUrl.isNotEmpty) {
-          uploadedImageUrl = imageUrl;
+        final newUrl = await _uploadImage(_selectedImage!);
+        if (!mounted) return;
+        if (newUrl != null && newUrl.isNotEmpty) {
+          currentImageUrl = newUrl;
         }
       }
 
-      final Map<String, dynamic> updateData = {
-        "username": _usernameController.text,
-        "email": _emailController.text,
-      };
+      final body = {'username': _usernameController.text.trim()};
+      print('Updating username with: $body');
 
-      if (_passwordController.text.isNotEmpty) {
-        updateData["password"] = _passwordController.text;
-      }
-
-      if (uploadedImageUrl != null && uploadedImageUrl.isNotEmpty) {
-        updateData["profileImage"] = uploadedImageUrl;
-      }
-
-      final response = await _dio.put(
+      final resp = await _dio.put(
         '$baseUrl/Auth/update-username',
-        data: updateData,
+        data: body,
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
-      if (response.statusCode == 200) {
+
+      if (!mounted) return;
+      if (resp.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile updated successfully')),
+          const SnackBar(content: Text('Profile updated successfully')),
         );
-        Navigator.pop(context, true); // ✅ رجع true عند نجاح التحديث
+        Navigator.pop(context, true);
       } else {
-        throw Exception('Update failed with status: ${response.statusCode}');
+        throw Exception('Status code: ${resp.statusCode}');
       }
-    } catch (e) {
+    } on DioError catch (e) {
+      if (!mounted) return;
+      print('DioError response: ${e.response?.data}');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile: $e')),
+        SnackBar(content: Text('Failed: ${e.response?.data ?? e.message}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final waveColor = isDarkMode ? Color(0xff272D3B) : Color(0xff4A536B);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final waveColor =
+        isDark ? const Color(0xff272D3B) : const Color(0xff4A536B);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -150,11 +148,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
               width: double.infinity,
               color: getitemColor(context),
             ),
+            const SizedBox(height: 40),
             Stack(
               alignment: Alignment.center,
               children: [
                 Container(
-                  padding: EdgeInsets.all(5),
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: Theme.of(context).secondaryHeaderColor,
                     shape: BoxShape.circle,
@@ -163,67 +162,64 @@ class _EditProfilePageState extends State<EditProfilePage> {
                         color: Colors.grey.withOpacity(0.5),
                         spreadRadius: 2,
                         blurRadius: 5,
-                        offset: Offset(0, 3),
                       ),
                     ],
                   ),
                   child: CircleAvatar(
-                    backgroundColor: getGreenColor(context),
                     radius: 60,
+                    backgroundColor: getGreenColor(context),
                     backgroundImage: _selectedImage != null
                         ? FileImage(_selectedImage!)
                         : (currentImageUrl != null &&
                                 currentImageUrl!.startsWith('http'))
-                            ? NetworkImage(currentImageUrl!)
-                            : AssetImage('assets/images/test.jpg')
-                                as ImageProvider,
+                            ? NetworkImage(currentImageUrl!) as ImageProvider
+                            : const AssetImage('assets/images/test.jpg'),
                   ),
                 ),
                 Positioned(
-                  bottom: 5,
-                  right: 5,
+                  bottom: 0,
+                  right: 0,
                   child: GestureDetector(
                     onTap: _pickImage,
                     child: Container(
-                      padding: EdgeInsets.all(5),
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: waveColor,
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.upload, color: Colors.white, size: 20),
+                      child: const Icon(Icons.upload,
+                          color: Colors.white, size: 20),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 30),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  buildInputField("Username", _usernameController),
-                  buildInputField("Email", _emailController, readOnly: true),
-                  // إذا أردت تفعيل تعديل كلمة السر أزل التعليق من السطر التالي:
-                  // buildInputField("Password", _passwordController, isPassword: true),
+                  _buildField('Username', _usernameController),
+                  const SizedBox(height: 15),
+                  _buildField('Email', _emailController, readOnly: true),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _updateProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: getitemColor(context),
+                      minimumSize: const Size(180, 50),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
                     child: Text(
-                      "Update",
+                      'Update',
                       style: GoogleFonts.poppins(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: getitemColor(context),
-                      fixedSize: Size(200, 50),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -233,38 +229,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Widget buildInputField(
+  Widget _buildField(
     String label,
-    TextEditingController controller, {
-    bool isPassword = false,
+    TextEditingController ctrl, {
     bool readOnly = false,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: SizedBox(
-        width: 350,
-        child: TextField(
-          controller: controller,
-          obscureText: isPassword,
-          readOnly: readOnly,
-          style: TextStyle(color: getTextColor2(context)),
-          decoration: InputDecoration(
-            labelText: label,
-            labelStyle: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: getTextColor2(context),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: getGreenColor(context)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: getGreyColor(context)),
-            ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-          ),
+    return TextField(
+      controller: ctrl,
+      readOnly: readOnly,
+      style: TextStyle(color: getTextColor2(context)),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(
+          color: getTextColor2(context),
+          fontWeight: FontWeight.bold,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: getGreenColor(context)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: BorderSide(color: getGreyColor(context)),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
         ),
       ),
     );

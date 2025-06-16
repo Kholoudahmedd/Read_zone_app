@@ -41,10 +41,10 @@ class _ReviewContentState extends State<ReviewContent> {
   @override
   void initState() {
     super.initState();
-    loadUserProfile();
+    _loadUserProfile();
   }
 
-  void loadUserProfile() async {
+  void _loadUserProfile() async {
     final authService = AuthService();
     final profile = await authService.getProfile();
 

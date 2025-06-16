@@ -6,7 +6,6 @@ import 'package:read_zone_app/screens/homepage.dart';
 import 'package:read_zone_app/screens/login_screen.dart';
 import 'package:read_zone_app/screens/on_boarding.dart';
 import 'package:read_zone_app/screens/welcome_screen.dart';
-import 'package:read_zone_app/screens/write_review.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

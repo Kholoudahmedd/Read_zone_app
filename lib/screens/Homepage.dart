@@ -122,14 +122,15 @@ class _HomepageState extends State<Homepage> {
                   Padding(
                     padding: const EdgeInsets.only(right: 10, left: 10),
                     child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
                                 ProfilePage(user: currentUser),
                           ),
                         );
+                        _loadUserHeaderImage(); // إعادة تحميل الصورة عند العودة
                       },
                       child: isLoadingHeader
                           ? SizedBox(
@@ -145,7 +146,7 @@ class _HomepageState extends State<Homepage> {
                                       as ImageProvider,
                             ),
                     ),
-                  ),
+                  )
                 ],
               ),
         drawer: NavigationDrawer(
