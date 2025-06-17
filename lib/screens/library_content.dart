@@ -40,7 +40,6 @@ class _LibraryContentState extends State<LibraryContent> {
   Future<void> _loadLibraryData() async {
     try {
       final token = storage.read('token');
-
       final headers = {'Authorization': 'Bearer $token'};
 
       final responses = await Future.wait([
@@ -49,6 +48,8 @@ class _LibraryContentState extends State<LibraryContent> {
         dio.get('$baseUrl/favorites', options: Options(headers: headers)),
         dio.get('$baseUrl/downloads', options: Options(headers: headers)),
       ]);
+
+      if (!mounted) return;
 
       setState(() {
         recentlyPlayed = List<Map<String, dynamic>>.from(responses[0].data);
@@ -59,6 +60,8 @@ class _LibraryContentState extends State<LibraryContent> {
       });
     } catch (e) {
       print('Error loading library data: $e');
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
       });
@@ -134,7 +137,7 @@ class _LibraryContentState extends State<LibraryContent> {
                               title: item['title'],
                               authorName: item['authorName'],
                               coverImageUrl: item['coverImageUrl'],
-                              category: item['subjects'] ?? 'General',
+                              category: item['category'] ?? 'General',
                               language: item['language'] ?? 'English',
                               rating: (item['rating'] ?? 4).toDouble(),
                             ),
