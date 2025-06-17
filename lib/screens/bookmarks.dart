@@ -1,13 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:read_zone_app/screens/book_details.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 
 class Bookmarks extends StatefulWidget {
-  const Bookmarks({super.key});
+  final int id;
+  final String title;
+  final String authorName;
+  final String coverImageUrl;
+  final String category;
+  final String language;
+  final double rating;
+  const Bookmarks({
+    super.key,
+    required this.id,
+    required this.title,
+    required this.authorName,
+    required this.coverImageUrl,
+    required this.category,
+    required this.language,
+    required this.rating,
+  });
 
   @override
   State<Bookmarks> createState() => _BookmarksState();
@@ -16,6 +33,8 @@ class Bookmarks extends StatefulWidget {
 class _BookmarksState extends State<Bookmarks> {
   List<Map<String, dynamic>> _bookmarks = [];
   bool _isLoading = true;
+  final Dio dio = Dio();
+  final storage = GetStorage();
 
   @override
   void initState() {
@@ -24,44 +43,47 @@ class _BookmarksState extends State<Bookmarks> {
   }
 
   Future<void> _loadBookmarks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final bookmarks = prefs.getStringList('bookmarks') ?? [];
+    try {
+      final token = storage.read('token');
+      final response = await dio.get(
+        'https://myfirstapi.runasp.net/api/UserLibrary/bookmarks',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
 
-    setState(() {
-      _bookmarks = bookmarks.map((item) {
-        final book = json.decode(item);
-        return {
-          'id': book['id'],
-          'title': book['title'] ?? 'Unknown Title',
-          'author': book['author'] ?? 'Unknown Author',
-          'image': book['image'] ?? 'assets/images/book.png',
-          'rating': book['rating'] ?? 4,
-          'pages': book['pages'] ?? 0,
-          'language': book['language'] ?? 'English',
-          'category': book['category'] ?? 'General',
-          'lastUpdated': book['lastUpdated'] ?? DateTime.now().toString(),
-        };
-      }).toList();
-      _isLoading = false;
-    });
+      setState(() {
+        _bookmarks = List<Map<String, dynamic>>.from(response.data);
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading bookmarks: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
-  Future<void> _removeBookmark(int index) async {
-    if (index < 0 || index >= _bookmarks.length) return;
+  Future<void> _removeBookmark(int bookId) async {
+    try {
+      final token = storage.read('token');
+      final response = await dio.delete(
+        'https://myfirstapi.runasp.net/api/UserLibrary/bookmarks/delete/$bookId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
 
-    final prefs = await SharedPreferences.getInstance();
-    final bookmarks = List<String>.from(prefs.getStringList('bookmarks') ?? []);
-
-    bookmarks.removeAt(index);
-    await prefs.setStringList('bookmarks', bookmarks);
-    await _loadBookmarks();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Bookmark removed'),
-        duration: Duration(seconds: 1),
-      ),
-    );
+      if (response.statusCode == 200) {
+        await _loadBookmarks();
+        Get.snackbar(
+          'Removed from Bookmarks',
+          'Book removed from your bookmarks',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 1),
+        );
+      } else {
+        print('Failed to remove bookmark: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error removing bookmark: $e');
+    }
   }
 
   @override
@@ -85,20 +107,18 @@ class _BookmarksState extends State<Bookmarks> {
           ),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(
+                child: CircularProgressIndicator(
+                color: getRedColor(context),
+              ))
             : _bookmarks.isEmpty
                 ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 16),
-                        Text(
-                          'No bookmarks yet',
-                          style: GoogleFonts.inter(
-                              fontSize: 18, color: getTextColor2(context)),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
+                    child: Text(
+                      'No bookmarks yet',
+                      style: GoogleFonts.inter(
+                        fontSize: 18,
+                        color: getTextColor2(context),
+                      ),
                     ),
                   )
                 : RefreshIndicator(
@@ -120,12 +140,12 @@ class _BookmarksState extends State<Bookmarks> {
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: (book['image'] != null &&
-                                          book['image']
+                                  child: (book['coverImageUrl'] != null &&
+                                          book['coverImageUrl']
                                               .toString()
                                               .startsWith('http'))
                                       ? Image.network(
-                                          book['image'],
+                                          book['coverImageUrl'],
                                           height: 160,
                                           width: 110,
                                           fit: BoxFit.cover,
@@ -139,6 +159,7 @@ class _BookmarksState extends State<Bookmarks> {
                                               child: Center(
                                                 child:
                                                     CircularProgressIndicator(
+                                                  color: getRedColor(context),
                                                   value: loadingProgress
                                                               .expectedTotalBytes !=
                                                           null
@@ -175,9 +196,16 @@ class _BookmarksState extends State<Bookmarks> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => BookDetails(
-                                            bookData: book,
-                                          ),
+                                          builder: (context) =>
+                                              BookDetails(bookData: {
+                                            'id': book['id'],
+                                            'title': book['title'],
+                                            'author': book['authorName'],
+                                            'image': book['coverImageUrl'],
+                                            'category': book['category'],
+                                            'language': book['language'],
+                                            'rating': book['rating'],
+                                          }),
                                         ),
                                       );
                                     },
@@ -186,7 +214,7 @@ class _BookmarksState extends State<Bookmarks> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          book['title'],
+                                          book['title'] ?? 'Unknown Title',
                                           style: GoogleFonts.inter(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,
@@ -197,7 +225,8 @@ class _BookmarksState extends State<Bookmarks> {
                                         ),
                                         const SizedBox(height: 5),
                                         Text(
-                                          book['author'],
+                                          book['authorName'] ??
+                                              'Unknown Author',
                                           style: GoogleFonts.inter(
                                             fontSize: 14,
                                             color: getGreyColor(context),
@@ -208,7 +237,7 @@ class _BookmarksState extends State<Bookmarks> {
                                   ),
                                 ),
                                 IconButton(
-                                  onPressed: () => _removeBookmark(index),
+                                  onPressed: () => _removeBookmark(book['id']),
                                   icon: CircleAvatar(
                                     radius: 20,
                                     backgroundColor: getRedColor(context),

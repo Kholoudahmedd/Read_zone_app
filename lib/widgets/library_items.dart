@@ -3,31 +3,40 @@ import 'package:get/get.dart';
 import 'package:read_zone_app/screens/book_details.dart';
 
 class LibraryItems extends StatelessWidget {
-  final Map<String, dynamic> bookData;
+  final int id;
+  final String title;
+  final String authorName;
+  final String coverImageUrl;
+  final String category;
+  final String language;
+  final double rating;
 
   const LibraryItems({
     super.key,
-    required this.bookData,
+    required this.id,
+    required this.title,
+    required this.authorName,
+    required this.coverImageUrl,
+    required this.category,
+    required this.language,
+    required this.rating,
   });
-
-  // دالة لتحديد نوع الصورة (تأكد من أنه سيتم تحميل الصورة بشكل صحيح)
-  ImageProvider getImage(String? path) {
-    if (path == null || path.isEmpty) {
-      return const AssetImage('assets/images/book.png'); // صورة افتراضية
-    } else if (path.startsWith('http')) {
-      return NetworkImage(path); // تحميل الصورة من الرابط
-    } else {
-      return AssetImage(path); // تحميل صورة من الأصول
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
+        // إرسال جميع البيانات المطلوبة لـ BookDetails
         Get.to(
-          () =>
-              BookDetails(bookData: bookData), // تمرير البيانات مع ID و Rating
+          () => BookDetails(bookData: {
+            'id': id,
+            'title': title,
+            'author': authorName,
+            'image': coverImageUrl,
+            'category': category,
+            'language': language,
+            'rating': rating,
+          }),
           transition: Transition.fadeIn,
           duration: const Duration(milliseconds: 300),
         );
@@ -39,16 +48,11 @@ class LibraryItems extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           image: DecorationImage(
-            image: getImage(bookData['image']), // استخدام صورة الكتاب
+            image: coverImageUrl.startsWith('http')
+                ? NetworkImage(coverImageUrl)
+                : AssetImage(coverImageUrl) as ImageProvider,
             fit: BoxFit.fill,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
-            ),
-          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
@@ -67,7 +71,7 @@ class LibraryItems extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    bookData['title'] ?? 'No Title', // عرض عنوان الكتاب
+                    title,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -77,7 +81,7 @@ class LibraryItems extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    bookData['author'] ?? 'Unknown Author', // عرض اسم المؤلف
+                    authorName,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 12,

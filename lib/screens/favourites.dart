@@ -4,11 +4,28 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:read_zone_app/screens/book_details.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 
 class FavouritesScreen extends StatefulWidget {
-  const FavouritesScreen({super.key});
+  final int id;
+  final String title;
+  final String authorName;
+  final String coverImageUrl;
+  final String category;
+  final String language;
+  final double rating;
+
+  const FavouritesScreen({
+    super.key,
+    required this.id,
+    required this.title,
+    required this.authorName,
+    required this.coverImageUrl,
+    required this.category,
+    required this.language,
+    required this.rating,
+  });
 
   @override
   State<FavouritesScreen> createState() => _FavouritesScreenState();
@@ -18,6 +35,10 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
   List<Map<String, dynamic>> _favourites = [];
   bool _isLoading = true;
 
+  final Dio _dio = Dio();
+  final String _baseUrl = 'https://myfirstapi.runasp.net/api';
+  final String? _token = GetStorage().read('token');
+
   @override
   void initState() {
     super.initState();
@@ -25,45 +46,47 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
   }
 
   Future<void> _loadFavourites() async {
-    final prefs = await SharedPreferences.getInstance();
-    final favourites = prefs.getStringList('favorites') ?? [];
+    try {
+      final response = await _dio.get(
+        '$_baseUrl/UserLibrary/favorites',
+        options: Options(headers: {'Authorization': 'Bearer $_token'}),
+      );
 
-    setState(() {
-      _favourites = favourites.map((item) {
-        final book = json.decode(item);
-        return {
-          'id': book['id'],
-          'title': book['title'] ?? 'Unknown Title',
-          'author': book['author'] ?? 'Unknown Author',
-          'image': book['image'] ?? 'assets/images/book.png',
-          'rating': book['rating'] ?? 0.0,
-          'pages': book['pages'] ?? 0,
-          'language': book['language'] ?? 'Unknown',
-          'category': book['category'] ?? 'General',
-          'description': book['description'] ?? 'No description available',
-        };
-      }).toList();
-      _isLoading = false;
-    });
+      if (response.statusCode == 200) {
+        setState(() {
+          _favourites = List<Map<String, dynamic>>.from(response.data);
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load favorites');
+      }
+    } catch (e) {
+      print("Error loading favorites: $e");
+      setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> _removeFavourite(int index) async {
-    if (index < 0 || index >= _favourites.length) return;
+  Future<void> _removeFavourite(String bookId) async {
+    try {
+      final response = await _dio.delete(
+        '$_baseUrl/UserLibrary/favorites/delete/$bookId',
+        options: Options(headers: {'Authorization': 'Bearer $_token'}),
+      );
 
-    final prefs = await SharedPreferences.getInstance();
-    final favourites =
-        List<String>.from(prefs.getStringList('favorites') ?? []);
-
-    favourites.removeAt(index);
-    await prefs.setStringList('favorites', favourites);
-    await _loadFavourites();
-
-    Get.snackbar(
-      'Removed from Favorites',
-      'Book removed from your favorites',
-      snackPosition: SnackPosition.BOTTOM,
-      duration: const Duration(seconds: 1),
-    );
+      if (response.statusCode == 200) {
+        await _loadFavourites();
+        Get.snackbar(
+          'Removed from Favorites',
+          'Book removed from your favorites',
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 1),
+        );
+      } else {
+        throw Exception('Failed to remove favorite');
+      }
+    } catch (e) {
+      print("Error removing favorite: $e");
+    }
   }
 
   @override
@@ -88,7 +111,8 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
           ),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(
+                child: CircularProgressIndicator(color: getRedColor(context)))
             : _favourites.isEmpty
                 ? Center(
                     child: Column(
@@ -102,7 +126,6 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                             color: getTextColor(context),
                           ),
                         ),
-                        const SizedBox(height: 10),
                       ],
                     ),
                   )
@@ -115,7 +138,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final book = _favourites[index];
-                        return _buildFavoriteItem(book, index);
+                        return _buildFavoriteItem(book);
                       },
                     ),
                   ),
@@ -123,7 +146,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
     );
   }
 
-  Widget _buildFavoriteItem(Map<String, dynamic> book, int index) {
+  Widget _buildFavoriteItem(Map<String, dynamic> book) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -131,13 +154,12 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
       ),
       child: Row(
         children: [
-          // Book Cover
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: book['image'] != null &&
-                    book['image'].toString().startsWith('http')
+            child: book['coverImageUrl'] != null &&
+                    book['coverImageUrl'].toString().startsWith('http')
                 ? Image.network(
-                    book['image'],
+                    book['coverImageUrl'],
                     width: 110,
                     height: 160,
                     fit: BoxFit.cover,
@@ -154,7 +176,9 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                       return SizedBox(
                         width: 110,
                         height: 160,
-                        child: Center(child: CircularProgressIndicator()),
+                        child: Center(
+                            child: CircularProgressIndicator(
+                                color: getRedColor(context))),
                       );
                     },
                   )
@@ -166,12 +190,19 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                   ),
           ),
           const SizedBox(width: 16),
-          // Book Details
           Expanded(
             child: GestureDetector(
               onTap: () {
                 Get.to(
-                  () => BookDetails(bookData: book),
+                  () => BookDetails(bookData: {
+                    'id': book['id'],
+                    'title': book['title'],
+                    'author': book['authorName'],
+                    'image': book['coverImageUrl'],
+                    'category': book['category'],
+                    'language': book['language'],
+                    'rating': book['rating'],
+                  }),
                   transition: Transition.rightToLeft,
                 );
               },
@@ -179,7 +210,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    book['title'],
+                    book['title'] ?? 'Unknown Title',
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -190,7 +221,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    book['author'],
+                    book['authorName'] ?? 'Unknown Author',
                     style: GoogleFonts.inter(
                       color: getTextColor(context),
                       fontSize: 14,
@@ -200,7 +231,6 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
               ),
             ),
           ),
-          // Remove Button
           IconButton(
             icon: CircleAvatar(
               radius: 20,
@@ -211,7 +241,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                 size: 22,
               ),
             ),
-            onPressed: () => _removeFavourite(index),
+            onPressed: () => _removeFavourite(book['id'].toString()),
           ),
         ],
       ),

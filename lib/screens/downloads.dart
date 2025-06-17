@@ -1,21 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:read_zone_app/screens/book_details.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class Downloads extends StatefulWidget {
-  const Downloads({super.key});
+  final String title;
+  final String authorName;
+  final String coverImageUrl;
+  final String category;
+  final String language;
+  final double rating;
+
+  const Downloads({
+    super.key,
+    required this.title,
+    required this.authorName,
+    required this.coverImageUrl,
+    required this.category,
+    required this.language,
+    required this.rating,
+  });
 
   @override
   _DownloadsState createState() => _DownloadsState();
 }
 
 class _DownloadsState extends State<Downloads> {
-  List<Map<String, dynamic>> _downloadedBooks = [];
+  List<dynamic> _downloadedBooks = [];
   bool _isLoading = true;
+  final Dio _dio = Dio();
+  final box = GetStorage();
 
   @override
   void initState() {
@@ -24,45 +42,50 @@ class _DownloadsState extends State<Downloads> {
   }
 
   Future<void> _loadDownloads() async {
-    final prefs = await SharedPreferences.getInstance();
-    final downloads = prefs.getStringList('downloads') ?? [];
+    if (!mounted) return;
+    setState(() => _isLoading = true);
 
-    setState(() {
-      _downloadedBooks = downloads.map((item) {
-        final book = json.decode(item);
-        return {
-          'title': book['title'] ?? 'Unknown Title',
-          'author': book['author'] ?? 'Unknown Author',
-          'image': book['image'] ?? 'assets/images/book.png',
-          'rating': book['rating'] ?? 0.0,
-          'pages': book['pages'] ?? 0,
-          'language': book['language'] ?? 'Unknown',
-        };
-      }).toList();
-      _isLoading = false;
-    });
+    final token = box.read('token');
+    try {
+      final response = await _dio.get(
+        'https://myfirstapi.runasp.net/api/UserLibrary/downloads',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        setState(() {
+          _downloadedBooks = response.data;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      print('Error fetching downloads: $e');
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> _removeDownload(int index) async {
-    if (index < 0 || index >= _downloadedBooks.length) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final downloads = List<String>.from(prefs.getStringList('downloads') ?? []);
-
-    downloads.removeAt(index);
-    await prefs.setStringList('downloads', downloads);
-    await _loadDownloads();
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Download removed'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        margin: const EdgeInsets.all(10),
-      ),
-    );
+  Future<void> _removeDownload(String bookId) async {
+    final token = box.read('token');
+    try {
+      await _dio.delete(
+        'https://myfirstapi.runasp.net/api/UserLibrary/downloads/delete/$bookId',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+      _loadDownloads();
+      if (!mounted) return;
+      Get.snackbar(
+        'Removed from Downloads',
+        'Book removed from your downloads',
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 1),
+      );
+    } catch (e) {
+      print('Error removing download: $e');
+    }
   }
 
   @override
@@ -78,7 +101,7 @@ class _DownloadsState extends State<Downloads> {
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
-            " Downloads",
+            "Downloads",
             style: GoogleFonts.inter(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -87,7 +110,8 @@ class _DownloadsState extends State<Downloads> {
           ),
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(
+                child: CircularProgressIndicator(color: getRedColor(context)))
             : _downloadedBooks.isEmpty
                 ? Center(
                     child: Column(
@@ -126,7 +150,7 @@ class _DownloadsState extends State<Downloads> {
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final book = _downloadedBooks[index];
-                        return _buildDownloadItem(book, index);
+                        return _buildDownloadItem(book);
                       },
                     ),
                   ),
@@ -134,7 +158,7 @@ class _DownloadsState extends State<Downloads> {
     );
   }
 
-  Widget _buildDownloadItem(Map<String, dynamic> book, int index) {
+  Widget _buildDownloadItem(Map<String, dynamic> book) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -142,13 +166,12 @@ class _DownloadsState extends State<Downloads> {
       ),
       child: Row(
         children: [
-          // Book Cover with internet image support
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: (book['image'] != null &&
-                    book['image'].toString().startsWith('http'))
+            child: (book['coverImageUrl'] != null &&
+                    book['coverImageUrl'].toString().startsWith('http'))
                 ? Image.network(
-                    book['image'],
+                    book['coverImageUrl'],
                     width: 110,
                     height: 160,
                     fit: BoxFit.cover,
@@ -159,6 +182,7 @@ class _DownloadsState extends State<Downloads> {
                         height: 160,
                         child: Center(
                           child: CircularProgressIndicator(
+                            color: getRedColor(context),
                             value: loadingProgress.expectedTotalBytes != null
                                 ? loadingProgress.cumulativeBytesLoaded /
                                     loadingProgress.expectedTotalBytes!
@@ -184,14 +208,21 @@ class _DownloadsState extends State<Downloads> {
                   ),
           ),
           const SizedBox(width: 16),
-          // Book Details
           Expanded(
             child: GestureDetector(
               onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => BookDetails(bookData: book),
+                    builder: (context) => BookDetails(bookData: {
+                      'id': book['id'],
+                      'title': book['title'],
+                      'author': book['authorName'],
+                      'image': book['coverImageUrl'],
+                      'category': book['category'],
+                      'language': book['language'],
+                      'rating': book['rating'],
+                    }),
                   ),
                 );
               },
@@ -199,7 +230,7 @@ class _DownloadsState extends State<Downloads> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    book['title'],
+                    book['title'] ?? 'Unknown Title',
                     style: GoogleFonts.inter(
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
@@ -210,18 +241,16 @@ class _DownloadsState extends State<Downloads> {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    book['author'],
+                    book['authorName'] ?? 'Unknown Author',
                     style: GoogleFonts.inter(
                       color: getTextColor(context),
                       fontSize: 14,
                     ),
                   ),
-                  const SizedBox(height: 10),
                 ],
               ),
             ),
           ),
-          // Remove Button
           IconButton(
             icon: CircleAvatar(
               radius: 20,
@@ -232,7 +261,7 @@ class _DownloadsState extends State<Downloads> {
                 size: 22,
               ),
             ),
-            onPressed: () => _removeDownload(index),
+            onPressed: () => _removeDownload(book['id'].toString()),
           ),
         ],
       ),

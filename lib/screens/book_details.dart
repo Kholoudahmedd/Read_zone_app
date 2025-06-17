@@ -4,8 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:read_zone_app/screens/rating_page.dart';
 import 'package:read_zone_app/screens/read_now.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 
 class BookDetails extends StatefulWidget {
   final Map<String, dynamic> bookData;
@@ -20,179 +20,147 @@ class _BookDetailsState extends State<BookDetails> {
   bool _isFavorite = false;
   bool _isBookmarked = false;
   bool _isDownloaded = false;
+  bool _isLoadingStatus = true;
+  bool _isLoadingFavorite = false;
+  bool _isLoadingBookmark = false;
+  bool _isLoadingDownload = false;
   bool isDarkMode = false;
+  final Dio dio = Dio();
+  final box = GetStorage();
+
+  // Recommendations state
+  List<dynamic> _recommendations = [];
+  bool _isLoadingRecommendations = false;
 
   @override
   void initState() {
     super.initState();
-    _loadTheme();
     _loadBookStatus();
-    print("Book Data Received: ${widget.bookData}"); // Debug print
-  }
-
-  Future<void> _loadTheme() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      isDarkMode = prefs.getBool('isDarkMode') ?? false;
-    });
+    _loadRecommendations();
   }
 
   Future<void> _loadBookStatus() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    // Load favorite status
-    final favorites = prefs.getStringList('favorites') ?? [];
-    _isFavorite = favorites.any((book) {
-      final bookMap = json.decode(book);
-      return bookMap['title'] == widget.bookData['title'] &&
-          bookMap['id'] == widget.bookData['id'] &&
-          bookMap['rating'] == widget.bookData['rating'] &&
-          bookMap['author'] == widget.bookData['author'];
+    setState(() {
+      _isLoadingStatus = true;
     });
 
-    // Load bookmark status
-    final bookmarks = prefs.getStringList('bookmarks') ?? [];
-    _isBookmarked = bookmarks.any((book) {
-      final bookMap = json.decode(book);
-      return bookMap['title'] == widget.bookData['title'] &&
-          bookMap['id'] == widget.bookData['id'] &&
-          bookMap['rating'] == widget.bookData['rating'] &&
-          bookMap['author'] == widget.bookData['author'];
+    final token = box.read('token');
+    final id = widget.bookData['id'];
+
+    Future<void> check(String type, Function(bool) setter) async {
+      try {
+        final response = await dio.get(
+          'https://myfirstapi.runasp.net/api/UserLibrary/$type',
+          options: Options(headers: {"Authorization": "Bearer $token"}),
+        );
+        final List data = response.data;
+        final exists = data.any((book) => book['id'] == id);
+        setter(exists);
+      } catch (e) {
+        print('Error loading $type status: $e');
+      }
+    }
+
+    await check('favorites', (v) => _isFavorite = v);
+    await check('bookmarks', (v) => _isBookmarked = v);
+    await check('downloads', (v) => _isDownloaded = v);
+
+    setState(() {
+      _isLoadingStatus = false;
+    });
+  }
+
+  Future<void> _loadRecommendations() async {
+    setState(() {
+      _isLoadingRecommendations = true;
     });
 
-    // Load download status
-    final downloads = prefs.getStringList('downloads') ?? [];
-    _isDownloaded = downloads.any((book) {
-      final bookMap = json.decode(book);
-      return bookMap['title'] == widget.bookData['title'] &&
-          bookMap['id'] == widget.bookData['id'] &&
-          bookMap['rating'] == widget.bookData['rating'] &&
-          bookMap['author'] == widget.bookData['author'];
-    });
+    final recommendations =
+        await _fetchRecommendations(widget.bookData['title'] ?? '');
 
+    setState(() {
+      _recommendations = recommendations;
+      _isLoadingRecommendations = false;
+    });
+  }
+
+  Future<List<dynamic>> _fetchRecommendations(String title) async {
+    final token = box.read('token');
+    try {
+      final response = await dio.get(
+        'https://myfirstapi.runasp.net/api/Recommendations/similar',
+        queryParameters: {'title': title},
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+      return response.data;
+    } catch (e) {
+      print('Error fetching recommendations: $e');
+      return [];
+    }
+  }
+
+  Future<void> _toggleBookStatus({
+    required String type,
+    required bool currentStatus,
+    required Function(bool) setter,
+    required Function(bool) loadingSetter,
+  }) async {
+    final token = box.read('token');
+    final id = widget.bookData['id'];
+
+    final String url = 'https://myfirstapi.runasp.net/api/UserLibrary/$type';
+    final method = currentStatus ? 'DELETE' : 'POST';
+    final endpoint = currentStatus ? '$url/delete/$id' : '$url/add';
+
+    loadingSetter(true);
+    setState(() {});
+
+    try {
+      final response = await dio.request(
+        endpoint,
+        data: method == 'POST' ? {"externalBookId": id} : null,
+        options: Options(
+          method: method,
+          headers: {"Authorization": "Bearer $token"},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        setter(!currentStatus);
+      }
+    } catch (e) {
+      print('Error toggling $type: $e');
+    }
+
+    loadingSetter(false);
     setState(() {});
   }
 
   Future<void> _toggleFavorite() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> favorites = prefs.getStringList('favorites') ?? [];
-
-    final book = {
-      'id': widget.bookData['id'] is int
-          ? widget.bookData['id']
-          : int.tryParse(widget.bookData['id'].toString()) ?? 0,
-      'rating': widget.bookData['rating'] ?? 0,
-      'title': widget.bookData['title'],
-      'author': widget.bookData['author'],
-      'image': widget.bookData['image'] ?? 'assets/images/book.png',
-    };
-
-    if (_isFavorite) {
-      favorites.removeWhere((item) {
-        final b = json.decode(item);
-        return b['title'] == book['title'] &&
-            b['author'] == book['author'] &&
-            b['id'] == book['id'] &&
-            b['rating'] == book['rating'];
-      });
-    } else {
-      favorites.add(json.encode(book));
-    }
-
-    await prefs.setStringList('favorites', favorites);
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
-
-    // Get.snackbar(
-    //   _isFavorite ? 'Added to Favorites' : 'Removed from Favorites',
-    //   _isFavorite
-    //       ? 'Book added to your favorites'
-    //       : 'Book removed from favorites',
-    //   snackPosition: SnackPosition.BOTTOM,
-    //   duration: const Duration(seconds: 2),
-    // );
+    await _toggleBookStatus(
+      type: 'favorites',
+      currentStatus: _isFavorite,
+      setter: (v) => _isFavorite = v,
+      loadingSetter: (v) => _isLoadingFavorite = v,
+    );
   }
 
   Future<void> _toggleBookmark() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> bookmarks = prefs.getStringList('bookmarks') ?? [];
-
-    final book = {
-      'id': widget.bookData['id'] is int
-          ? widget.bookData['id']
-          : int.tryParse(widget.bookData['id'].toString()) ?? 1,
-      'title': widget.bookData['title'],
-      'author': widget.bookData['author'],
-      'image': widget.bookData['image'] ?? 'assets/images/book.png',
-      'rating': widget.bookData['rating'] ?? 4,
-      'pages': widget.bookData['pages'] ?? 0,
-      'language': widget.bookData['language'] ?? 'English',
-      'category': widget.bookData['category'] ?? 'General',
-      'lastUpdated': DateTime.now().toIso8601String(),
-    };
-
-    if (_isBookmarked) {
-      bookmarks.removeWhere((item) {
-        final b = json.decode(item);
-        return b['title'] == book['title'] &&
-            b['author'] == book['author'] &&
-            b['id'] == book['id'] &&
-            b['rating'] == book['rating'];
-      });
-    } else {
-      bookmarks.add(json.encode(book));
-    }
-
-    await prefs.setStringList('bookmarks', bookmarks);
-    setState(() {
-      _isBookmarked = !_isBookmarked;
-    });
-
-    // Get.snackbar(
-    //   _isBookmarked ? 'Bookmarked' : 'Removed Bookmark',
-    //   _isBookmarked
-    //       ? 'Book added to your bookmarks'
-    //       : 'Book removed from bookmarks',
-    //   snackPosition: SnackPosition.BOTTOM,
-    //   duration: const Duration(seconds: 2),
-    // );
+    await _toggleBookStatus(
+      type: 'bookmarks',
+      currentStatus: _isBookmarked,
+      setter: (v) => _isBookmarked = v,
+      loadingSetter: (v) => _isLoadingBookmark = v,
+    );
   }
 
   Future<void> _toggleDownload() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> downloads = prefs.getStringList('downloads') ?? [];
-
-    final book = {
-      'id': widget.bookData['id'] is int
-          ? widget.bookData['id']
-          : int.tryParse(widget.bookData['id'].toString()) ?? 0,
-      'rating': widget.bookData['rating'] ?? 0,
-      'title': widget.bookData['title'],
-      'author': widget.bookData['author'],
-      'image': widget.bookData['image'] ?? 'assets/images/book.png',
-    };
-
-    if (_isDownloaded) {
-      downloads.removeWhere((item) {
-        final b = json.decode(item);
-        return b['title'] == book['title'] && b['author'] == book['author'];
-      });
-    } else {
-      downloads.add(json.encode(book));
-    }
-
-    await prefs.setStringList('downloads', downloads);
-    setState(() {
-      _isDownloaded = !_isDownloaded;
-    });
-
-    // Get.snackbar(
-    //   _isDownloaded ? 'Downloaded' : 'Removed Download',
-    //   _isDownloaded ? 'Book downloaded successfully' : 'Download removed',
-    //   snackPosition: SnackPosition.BOTTOM,
-    //   duration: const Duration(seconds: 0),
-    // );
+    await _toggleBookStatus(
+      type: 'downloads',
+      currentStatus: _isDownloaded,
+      setter: (v) => _isDownloaded = v,
+      loadingSetter: (v) => _isLoadingDownload = v,
+    );
   }
 
   @override
@@ -209,73 +177,90 @@ class _BookDetailsState extends State<BookDetails> {
           ),
           actions: [
             IconButton(
-              icon: Icon(
-                _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-                color:
-                    _isFavorite ? getRedColor(context) : getGreyColor(context),
-              ),
-              onPressed: _toggleFavorite,
+              icon: _isLoadingFavorite
+                  ? SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        color: getRedColor(context),
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Icon(
+                      _isFavorite
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      color: _isFavorite
+                          ? getRedColor(context)
+                          : getGreyColor(context),
+                    ),
+              onPressed: _isLoadingFavorite ? null : _toggleFavorite,
             ),
           ],
         ),
-        body: SingleChildScrollView(
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 25),
-                  Container(
-                    color: getitemColor(context),
-                    height: MediaQuery.of(context).size.height * 0.4,
-                  ),
-                  const SizedBox(height: 45),
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.9,
-                    child: Text(
-                      widget.bookData['title'] ?? 'No Title',
-                      style: GoogleFonts.inter(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        shadows: const [
-                          Shadow(color: Colors.blueGrey, blurRadius: 5)
-                        ],
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.bookData['author'] ?? 'Unknown Author',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      shadows: const [
-                        Shadow(color: Colors.blueGrey, blurRadius: 5)
+        body: _isLoadingStatus
+            ? Center(
+                child: CircularProgressIndicator(color: getRedColor(context)))
+            : SingleChildScrollView(
+                child: Stack(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const SizedBox(height: 25),
+                        Container(
+                          color: getitemColor(context),
+                          height: MediaQuery.of(context).size.height * 0.4,
+                        ),
+                        const SizedBox(height: 45),
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.9,
+                          child: Text(
+                            widget.bookData['title'] ?? 'No Title',
+                            style: GoogleFonts.inter(
+                              fontSize: 30,
+                              fontWeight: FontWeight.bold,
+                              shadows: const [
+                                Shadow(color: Colors.blueGrey, blurRadius: 5)
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          widget.bookData['author'] ?? 'Unknown Author',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            shadows: const [
+                              Shadow(color: Colors.blueGrey, blurRadius: 5)
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildBookStatsRow(),
+                        const SizedBox(height: 30),
+                        _buildActionButtons(),
+                        const SizedBox(height: 20),
+                        _buildCategoryRow(),
+                        const SizedBox(height: 20),
+                        _buildRecommendationsSection(),
+                        const SizedBox(height: 20),
+                        _buildBottomNavigation(),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildBookStatsRow(),
-                  const SizedBox(height: 30),
-                  _buildActionButtons(),
-                  const SizedBox(height: 20),
-                  _buildCategoryRow(),
-                  const SizedBox(height: 20),
-                  _buildBottomNavigation(),
-                ],
+                    Positioned(
+                      right: 20,
+                      left: 20,
+                      top: 3,
+                      child: _buildBookCover(),
+                    ),
+                  ],
+                ),
               ),
-              Positioned(
-                right: 20,
-                left: 20,
-                top: 3,
-                child: _buildBookCover(),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -290,10 +275,6 @@ class _BookDetailsState extends State<BookDetails> {
           label: 'Rating',
           iconColor: const Color(0xffFF9A8D),
         ),
-        // _buildStatItem(
-        //   value: (widget.bookData['pages'] ?? 0).toString(),
-        //   label: 'Pages',
-        // ),
         _buildStatItem(
           value: widget.bookData['language'] ?? 'English',
           label: 'Language',
@@ -360,13 +341,20 @@ class _BookDetailsState extends State<BookDetails> {
         ),
         const SizedBox(width: 10),
         ElevatedButton(
-          onPressed: _toggleBookmark,
-          child: Icon(
-            _isBookmarked
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_border_rounded,
-            color: Colors.white,
-          ),
+          onPressed: _isLoadingBookmark ? null : _toggleBookmark,
+          child: _isLoadingBookmark
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : Icon(
+                  _isBookmarked
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  color: Colors.white,
+                ),
           style: ElevatedButton.styleFrom(
             backgroundColor: getRedColor(context),
             shape: const CircleBorder(),
@@ -397,15 +385,179 @@ class _BookDetailsState extends State<BookDetails> {
             ),
           ),
           const Spacer(),
-          IconButton(
-            icon: Icon(
-              _isDownloaded ? Icons.download_done : Icons.download,
-              color: getRedColor(context),
-              size: 30,
-            ),
-            onPressed: _toggleDownload,
-          ),
+          _isLoadingDownload
+              ? SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: getRedColor(context)),
+                )
+              : IconButton(
+                  icon: Icon(
+                    _isDownloaded ? Icons.download_done : Icons.download,
+                    color: getRedColor(context),
+                    size: 30,
+                  ),
+                  onPressed: _toggleDownload,
+                ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsSection() {
+    if (_isLoadingRecommendations) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: CircularProgressIndicator(color: getRedColor(context)),
+        ),
+      );
+    }
+
+    if (_recommendations.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Text(
+            'You might also like',
+            style: GoogleFonts.inter(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            itemCount: _recommendations.length,
+            itemBuilder: (context, index) {
+              final book = _recommendations[index];
+              return _buildRecommendationItem(book);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecommendationItem(Map<String, dynamic> book) {
+    return SizedBox(
+      // Use SizedBox to constrain width
+      width: 140,
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookDetails(bookData: {
+                'id': book['id'],
+                'title': book['title'],
+                'author': book['authorName'],
+                'image': book['coverImageUrl'],
+                "category": book["subjects"] ?? '',
+                'language': book['language'],
+                'rating': book['rating'],
+              }),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Image container with fixed aspect ratio
+            Container(
+              height: 180,
+              width: 120,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: getitemColor(context),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  book['coverImageUrl'] ?? 'assets/images/book.png',
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        Icons.book,
+                        size: 50,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+                  ),
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded /
+                                loadingProgress.expectedTotalBytes!
+                            : null,
+                        color: getRedColor(context),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            // Text content with constrained width
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                children: [
+                  ConstrainedBox(
+                    constraints:
+                        const BoxConstraints(maxWidth: 130), // Prevent overflow
+                    child: Text(
+                      book['title'] ?? 'Unknown Title',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 130),
+                    child: Text(
+                      book['authorName'] ?? 'Unknown Author',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: getTextColor(context),
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
