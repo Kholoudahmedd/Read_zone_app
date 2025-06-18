@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:read_zone_app/Notfication/main.dart';
 import 'package:read_zone_app/chat/screens/screenhome.dart';
 import 'package:read_zone_app/screens/Settings.dart' as custom_settings;
 import 'package:read_zone_app/screens/homepage_content.dart';
@@ -174,6 +175,7 @@ class _HomepageState extends State<Homepage> {
               title: Text('Notification',
                   style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
               leading: _buildIcon(context, 'assets/icon/notfication.png'),
+              onTap: () => Get.to(() => NotificationApp()),
             ),
             ListTile(
               title: Text('My Notes',

@@ -3,39 +3,39 @@ import 'package:dio/dio.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:read_zone_app/widgets/newarrival_items.dart';
 
-class RecommendationSection extends StatefulWidget {
-  const RecommendationSection({super.key});
+class FicitionSection extends StatefulWidget {
+  const FicitionSection({super.key});
 
   @override
-  State<RecommendationSection> createState() => _RecommendationSectionState();
+  State<FicitionSection> createState() => _FicitionSectionState();
 }
 
-class _RecommendationSectionState extends State<RecommendationSection> {
-  List<Map<String, dynamic>> recommendations = [];
+class _FicitionSectionState extends State<FicitionSection> {
+  List<Map<String, dynamic>> Ficitions = [];
   bool isLoading = true;
   bool isError = false;
 
   @override
   void initState() {
     super.initState();
-    fetchRecommendations();
+    fetchFicitions();
   }
 
-  Future<void> fetchRecommendations() async {
+  Future<void> fetchFicitions() async {
     setState(() {
       isLoading = true;
       isError = false;
     });
 
     try {
-      final response =
-          await Dio().get('https://myfirstapi.runasp.net/api/AudioBooks/home');
+      final response = await Dio()
+          .get('https://myfirstapi.runasp.net/api/books/sections/fiction');
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         if (mounted) {
           setState(() {
-            recommendations = data.map<Map<String, dynamic>>((book) {
+            Ficitions = data.map<Map<String, dynamic>>((book) {
               return {
                 "id": book["id"],
                 "title": book["title"],
@@ -58,7 +58,7 @@ class _RecommendationSectionState extends State<RecommendationSection> {
         }
       }
     } catch (e) {
-      print('Error fetching recommendations: $e');
+      print('Error fetching Ficitions: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -84,12 +84,12 @@ class _RecommendationSectionState extends State<RecommendationSection> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'An error occurred while loading recommendations.',
+              'An error occurred while loading books.',
               style: TextStyle(color: getRedColor(context)),
             ),
             const SizedBox(height: 10),
             ElevatedButton(
-              onPressed: fetchRecommendations,
+              onPressed: fetchFicitions,
               style: ElevatedButton.styleFrom(
                 backgroundColor: getRedColor(context),
               ),
@@ -105,9 +105,9 @@ class _RecommendationSectionState extends State<RecommendationSection> {
 
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      itemCount: 10,
+      itemCount: Ficitions.length,
       itemBuilder: (context, index) {
-        return NewarrivalItems(bookData: recommendations[index]);
+        return NewarrivalItems(bookData: Ficitions[index]);
       },
     );
   }

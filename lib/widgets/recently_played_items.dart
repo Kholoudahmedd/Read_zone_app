@@ -10,7 +10,6 @@ class RecentlyPlayedItems extends StatelessWidget {
     required this.bookData,
   });
 
-  // دالة لتحديد نوع الصورة
   ImageProvider getImage(String? path) {
     if (path == null || path.isEmpty) {
       return const AssetImage('assets/images/book.png');
@@ -27,10 +26,10 @@ class RecentlyPlayedItems extends StatelessWidget {
       onTap: () {
         Get.to(
           () => AudioBookDetails(
-            id: bookData['id'] ?? 0,
             title: bookData['title'] ?? 'No Title',
-            author: bookData['author'] ?? 'Unknown Author',
-            image: bookData['image'] ?? 'assets/images/book.png',
+            identifier: bookData['identifier'] ?? '',
+            creator: bookData['creator'] ?? 'Unknown Creator',
+            coverUrl: bookData['coverUrl'] ?? 'assets/images/book.png',
           ),
           transition: Transition.fadeIn,
           duration: const Duration(milliseconds: 300),
@@ -43,7 +42,7 @@ class RecentlyPlayedItems extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           image: DecorationImage(
-            image: getImage(bookData['image']),
+            image: getImage(bookData['coverUrl']),
             fit: BoxFit.fill,
           ),
           boxShadow: [
@@ -81,7 +80,7 @@ class RecentlyPlayedItems extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    bookData['author'] ?? 'Unknown Author',
+                    bookData['creator'] ?? 'Unknown Creator',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 12,

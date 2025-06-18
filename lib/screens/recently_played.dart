@@ -3,8 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:read_zone_app/screens/audio_book_details.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 
 class RecentlyPlayed extends StatefulWidget {
   const RecentlyPlayed({super.key});
@@ -14,6 +14,8 @@ class RecentlyPlayed extends StatefulWidget {
 }
 
 class _RecentlyPlayedState extends State<RecentlyPlayed> {
+  final Dio dio = Dio();
+  final storage = GetStorage();
   List<Map<String, dynamic>> recentlyPlayedBooks = [];
   bool isLoading = true;
 
@@ -24,73 +26,47 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
   }
 
   Future<void> _loadRecentlyPlayedBooks() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> recentlyPlayed = prefs.getStringList('recentlyPlayed') ?? [];
-
-    if (!mounted) return;
-
-    List<String> favorites = prefs.getStringList('favorites') ?? [];
-
-    setState(() {
-      recentlyPlayedBooks = recentlyPlayed.map((item) {
-        Map<String, dynamic> book = json.decode(item);
-        final bookJson = json.encode({
-          'title': book['title'],
-          'author': book['author'],
-          'image': book['image'],
-        });
-        return {
-          'title': book['title'] ?? 'Unknown Title',
-          'author': book['author'] ?? 'Unknown Author',
-          'image': book['image'] ?? 'assets/images/book.png',
-          'type': book['type'] ?? 'audio',
-          'lastPlayed': book['lastPlayed'],
-          'progress': book['progress'] ?? 0.0,
-          'currentChapter': book['currentChapter'] ?? 0,
-          'isFavorite': favorites.contains(bookJson),
-        };
-      }).toList();
-      isLoading = false;
-    });
-  }
-
-
-  Future<void> _clearAllRecentlyPlayed() async {
-    // عرض dialog للتأكيد
-    bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Clear All'),
-        content: const Text(
-            'Are you sure you want to clear all recently played books?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child:
-                Text('Cancel', style: TextStyle(color: getRedColor(context))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('Clear', style: TextStyle(color: getRedColor(context))),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('recentlyPlayed');
-      if (mounted) {
-        setState(() {
-          recentlyPlayedBooks.clear();
-        });
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Recently played list cleared'),
-          backgroundColor: getRedColor(context),
+    try {
+      final token = storage.read('token');
+      final response = await dio.get(
+        'https://myfirstapi.runasp.net/api/userlibrary/audiobooks/recent',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+          },
         ),
       );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final List data = response.data;
+        if (!mounted) return;
+        setState(() {
+          recentlyPlayedBooks = data.map<Map<String, dynamic>>((book) {
+            return {
+              'id': book['identifier'],
+              'title': book['title'] ?? 'Unknown Title',
+              'author': book['creator'] ?? 'Unknown Author',
+              'image': book['coverUrl'] ?? 'assets/images/book.png',
+              'type': 'audio',
+              'lastPlayed': book['lastPlayed'] ?? '',
+              'progress': book['progress'] ?? 0.0,
+              'currentChapter': book['currentChapter'] ?? 0,
+              'isFavorite': book['isFavorite'] ?? false,
+            };
+          }).toList();
+          isLoading = false;
+        });
+      } else {
+        print('Failed to load: ${response.statusCode}');
+        if (!mounted) return;
+        setState(() => isLoading = false);
+      }
+    } catch (e) {
+      print('Error loading recently played: $e');
+      if (!mounted) return;
+      setState(() => isLoading = false);
     }
   }
 
@@ -99,10 +75,10 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
       context,
       MaterialPageRoute(
         builder: (context) => AudioBookDetails(
-          id: book['id'],
           title: book['title'],
-          author: book['author'],
-          image: book['image'],
+          identifier: book['id'],
+          creator: book['author'],
+          coverUrl: book['image'],
         ),
       ),
     ).then((_) => _loadRecentlyPlayedBooks());
@@ -116,9 +92,7 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Iconsax.arrow_left,
-          ),
+          icon: Icon(Iconsax.arrow_left),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -129,14 +103,6 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
             color: getRedColor(context),
           ),
         ),
-        actions: [
-          if (recentlyPlayedBooks.isNotEmpty && !isLoading)
-            IconButton(
-              icon: Icon(Iconsax.trash, color: getRedColor(context)),
-              onPressed: _clearAllRecentlyPlayed,
-              tooltip: 'Clear All',
-            ),
-        ],
       ),
       body: isLoading
           ? Center(
@@ -150,10 +116,8 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
                       const SizedBox(height: 16),
                       Text(
                         'No recently played books',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          color: Colors.grey,
-                        ),
+                        style:
+                            GoogleFonts.inter(fontSize: 18, color: Colors.grey),
                       ),
                     ],
                   ),
@@ -167,6 +131,7 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
                     itemCount: recentlyPlayedBooks.length,
                     itemBuilder: (context, index) {
                       final book = recentlyPlayedBooks[index];
+
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.only(bottom: 16),
@@ -245,50 +210,25 @@ class _RecentlyPlayedState extends State<RecentlyPlayed> {
                                           Text(
                                             '${((book['progress'] ?? 0.0) * 100).toStringAsFixed(0)}% completed',
                                             style: GoogleFonts.inter(
-                                              fontSize: 12,
-                                              color: Colors.grey,
-                                            ),
-                                          ),
-                                          Text(
-                                            'Chapter ${(book['currentChapter'] ?? 0) + 1}',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 12,
-                                              color: getRedColor(context),
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                                fontSize: 12,
+                                                color: Colors.grey),
                                           ),
                                         ],
                                       ),
                                     ],
                                   ),
                                 ),
-                                Column(
-                                  children: [
-                                    // IconButton(
-                                    //   onPressed: () => _toggleFavorite(index),
-                                    //   icon: Icon(
-                                    //     book['isFavorite'] == true
-                                    //         ? Icons.favorite
-                                    //         : Icons.favorite_border,
-                                    //     color: book['isFavorite'] == true
-                                    //         ? getRedColor(context)
-                                    //         : Colors.grey,
-                                    //   ),
-                                    // ),
-                                    IconButton(
-                                      onPressed: () =>
-                                          _navigateToBookDetails(book),
-                                      icon: CircleAvatar(
-                                        radius: 20,
-                                        backgroundColor: getRedColor(context),
-                                        child: const Icon(
-                                          Icons.play_arrow,
-                                          color: Colors.white,
-                                          size: 22,
-                                        ),
-                                      ),
+                                IconButton(
+                                  onPressed: () => _navigateToBookDetails(book),
+                                  icon: CircleAvatar(
+                                    radius: 20,
+                                    backgroundColor: getRedColor(context),
+                                    child: const Icon(
+                                      Icons.play_arrow,
+                                      color: Colors.white,
+                                      size: 22,
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),

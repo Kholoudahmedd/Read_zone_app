@@ -28,8 +28,8 @@ class _LibraryContentState extends State<LibraryContent> {
   final storage = GetStorage();
 
   final String baseUrl = 'https://myfirstapi.runasp.net/api/UserLibrary';
-
   bool _isLoading = true;
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -38,12 +38,18 @@ class _LibraryContentState extends State<LibraryContent> {
   }
 
   Future<void> _loadLibraryData() async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
+
     try {
       final token = storage.read('token');
       final headers = {'Authorization': 'Bearer $token'};
 
       final responses = await Future.wait([
-        dio.get('$baseUrl/recent', options: Options(headers: headers)),
+        dio.get('$baseUrl/audiobooks/recent',
+            options: Options(headers: headers)),
         dio.get('$baseUrl/bookmarks', options: Options(headers: headers)),
         dio.get('$baseUrl/favorites', options: Options(headers: headers)),
         dio.get('$baseUrl/downloads', options: Options(headers: headers)),
@@ -57,13 +63,14 @@ class _LibraryContentState extends State<LibraryContent> {
         favorites = List<Map<String, dynamic>>.from(responses[2].data);
         downloads = List<Map<String, dynamic>>.from(responses[3].data);
         _isLoading = false;
+        _hasError = false;
       });
     } catch (e) {
       print('Error loading library data: $e');
       if (!mounted) return;
-
       setState(() {
         _isLoading = false;
+        _hasError = true;
       });
     }
   }
@@ -87,16 +94,14 @@ class _LibraryContentState extends State<LibraryContent> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 0),
+          padding: const EdgeInsets.symmetric(horizontal: 15),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
                 style: GoogleFonts.inter(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+                    fontSize: 20, fontWeight: FontWeight.bold),
               ),
               if (showSeeAll && items.length > 3)
                 TextButton(
@@ -120,30 +125,19 @@ class _LibraryContentState extends State<LibraryContent> {
             itemCount: items.length > 3 ? 3 : items.length,
             itemBuilder: (context, index) {
               final item = items[index];
-              return GestureDetector(
-                onTap: () {
-                  if (isRecentlyPlayed) {
-                    Get.to(() => RecentlyPlayedItems(bookData: item));
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Column(
-                    children: [
-                      isRecentlyPlayed
-                          ? RecentlyPlayedItems(bookData: item)
-                          : LibraryItems(
-                              id: item['id'],
-                              title: item['title'],
-                              authorName: item['authorName'],
-                              coverImageUrl: item['coverImageUrl'],
-                              category: item['category'] ?? 'General',
-                              language: item['language'] ?? 'English',
-                              rating: (item['rating'] ?? 4).toDouble(),
-                            ),
-                    ],
-                  ),
-                ),
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: isRecentlyPlayed
+                    ? RecentlyPlayedItems(bookData: item)
+                    : LibraryItems(
+                        id: item['id'],
+                        title: item['title'],
+                        authorName: item['authorName'],
+                        coverImageUrl: item['coverImageUrl'],
+                        category: item['category'] ?? 'General',
+                        language: item['language'] ?? 'English',
+                        rating: (item['rating'] ?? 4).toDouble(),
+                      ),
               );
             },
           ),
@@ -158,10 +152,7 @@ class _LibraryContentState extends State<LibraryContent> {
     return Scaffold(
       body: _isLoading
           ? Center(
-              child: CircularProgressIndicator(
-                color: getRedColor(context),
-              ),
-            )
+              child: CircularProgressIndicator(color: getRedColor(context)))
           : RefreshIndicator(
               color: getRedColor(context),
               onRefresh: _loadLibraryData,
@@ -199,21 +190,43 @@ class _LibraryContentState extends State<LibraryContent> {
                       ),
                     ),
                     SizedBox(height: 20),
-                    if (_isLibraryEmpty())
+                    if (_hasError || _isLibraryEmpty())
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 200),
-                        child: Center(
-                          child: Text(
-                            'No items available in your library',
-                            style: GoogleFonts.inter(
-                              fontSize: 18,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.bold,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Failed to load library data',
+                              style: GoogleFonts.inter(
+                                fontSize: 18,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 20),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: getRedColor(context),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                              ),
+                              onPressed: _loadLibraryData,
+                              // icon: const Icon(Icons.refresh,
+                              //     color: Colors.white),
+                              label: const Text(
+                                'Retry',
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 16),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    if (!_isLibraryEmpty()) ...[
+                    if (!_isLibraryEmpty() && !_hasError) ...[
                       _buildLibrarySection(
                         title: 'Recently Played',
                         items: recentlyPlayed,
@@ -291,7 +304,7 @@ class _LibraryContentState extends State<LibraryContent> {
                               : 4.0,
                         ),
                       ),
-                      SizedBox(height: 40),
+                      SizedBox(height: 100),
                     ],
                   ],
                 ),

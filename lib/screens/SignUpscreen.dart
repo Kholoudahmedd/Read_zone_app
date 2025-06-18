@@ -238,11 +238,19 @@ class _SignupscreenState extends State<Signupscreen> {
                                     ));
                                   }
                                 } catch (e) {
-                                  print("❌ خطأ في الاتصال بالـ API: $e");
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: Text('Server Error: $e'),
-                                  ));
+                                  if (e is DioException && e.response != null) {
+                                    print("❌ API Error: ${e.response!.data}");
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text('${e.response!.data}'),
+                                    ));
+                                  } else {
+                                    print("❌ Unexpected Error: $e");
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(SnackBar(
+                                      content: Text('Unexpected Error: $e'),
+                                    ));
+                                  }
                                 }
 
                                 setState(() {

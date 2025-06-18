@@ -72,12 +72,12 @@ class _PopularBooksState extends State<PopularBooks> {
     });
   }
 
-  void _clearSearch() {
-    _searchController.clear();
-    setState(() {
-      _isSearching = false;
-    });
-  }
+  // void _clearSearch() {
+  //   _searchController.clear();
+  //   setState(() {
+  //     _isSearching = false;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +87,7 @@ class _PopularBooksState extends State<PopularBooks> {
       appBar: _buildAppBar(context),
       body: Column(
         children: [
-          _buildSearchField(context),
+          // _buildSearchField(context),
           Expanded(
             child: FutureBuilder<List<PopularBook>>(
               future: _booksFuture,
@@ -157,50 +157,50 @@ class _PopularBooksState extends State<PopularBooks> {
     );
   }
 
-  Widget _buildSearchField(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'Search',
-          hintStyle: GoogleFonts.inter(color: getTextColor2(context)),
-          prefixIcon: Icon(Icons.search, color: getTextColor2(context)),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear, color: getGreyColor(context)),
-                  onPressed: _clearSearch,
-                )
-              : null,
-          filled: true,
-          fillColor: Colors.transparent,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide(
-              color: getGreyColor(context),
-              width: 1,
-            ),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide(
-              color: getGreyColor(context),
-              width: 1,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(30),
-            borderSide: BorderSide(
-              color: getRedColor(context),
-              width: 1,
-            ),
-          ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        ),
-        style: GoogleFonts.inter(),
-      ),
-    );
-  }
+  // Widget _buildSearchField(BuildContext context) {
+  //   return Padding(
+  //     padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+  //     child: TextField(
+  //       controller: _searchController,
+  //       decoration: InputDecoration(
+  //         hintText: 'Search',
+  //         hintStyle: GoogleFonts.inter(color: getTextColor2(context)),
+  //         prefixIcon: Icon(Icons.search, color: getTextColor2(context)),
+  //         suffixIcon: _searchController.text.isNotEmpty
+  //             ? IconButton(
+  //                 icon: Icon(Icons.clear, color: getGreyColor(context)),
+  //                 onPressed: _clearSearch,
+  //               )
+  //             : null,
+  //         filled: true,
+  //         fillColor: Colors.transparent,
+  //         border: OutlineInputBorder(
+  //           borderRadius: BorderRadius.circular(30),
+  //           borderSide: BorderSide(
+  //             color: getGreyColor(context),
+  //             width: 1,
+  //           ),
+  //         ),
+  //         enabledBorder: OutlineInputBorder(
+  //           borderRadius: BorderRadius.circular(30),
+  //           borderSide: BorderSide(
+  //             color: getGreyColor(context),
+  //             width: 1,
+  //           ),
+  //         ),
+  //         focusedBorder: OutlineInputBorder(
+  //           borderRadius: BorderRadius.circular(30),
+  //           borderSide: BorderSide(
+  //             color: getRedColor(context),
+  //             width: 1,
+  //           ),
+  //         ),
+  //         contentPadding: const EdgeInsets.symmetric(vertical: 12),
+  //       ),
+  //       style: GoogleFonts.inter(),
+  //     ),
+  //   );
+  // }
 
   AppBar _buildAppBar(BuildContext context) {
     return AppBar(

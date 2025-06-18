@@ -84,7 +84,6 @@ class ApiService2 {
     return response.data;
   }
 
-  // هنا الدالة الجديدة لجلب التوصيات
   Future<dynamic> getRecommendations() async {
     return await get(endPoint: 'AudioBooks/home');
   }

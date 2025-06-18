@@ -1,5 +1,6 @@
 class AudioBook {
   final int id;
+  final String identifier;
   final String title;
   final String authorName;
   final String? narrator;
@@ -9,6 +10,7 @@ class AudioBook {
 
   AudioBook({
     required this.id,
+    required this.identifier,
     required this.title,
     required this.authorName,
     this.narrator,
@@ -19,7 +21,8 @@ class AudioBook {
 
   factory AudioBook.fromJson(Map<String, dynamic> json) {
     return AudioBook(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id'].toString()) ?? 0,
+      identifier: json['identifier'] ?? '',
       title: json['title'] ?? 'No Title',
       authorName: json['creator'] ?? json['author'] ?? 'Unknown Author',
       narrator: json['narrator'],
@@ -28,6 +31,4 @@ class AudioBook {
       coverImageUrl: json['coverImageUrl'] ?? json['coverUrl'],
     );
   }
-
-  get chapters => null;
 }

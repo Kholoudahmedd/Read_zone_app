@@ -17,7 +17,6 @@ class AuthService {
 
   final box = GetStorage();
 
-  /// تسجيل الدخول
   Future<bool> login(String email, String password) async {
     try {
       final response = await dio.post(
@@ -41,7 +40,6 @@ class AuthService {
     }
   }
 
-  /// إنشاء حساب جديد
   Future<bool> register(String name, String email, String password) async {
     try {
       final response = await dio.post(
@@ -65,7 +63,6 @@ class AuthService {
     }
   }
 
-  /// تغيير كلمة المرور
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -99,7 +96,6 @@ class AuthService {
     }
   }
 
-  /// حذف الحساب
   Future<bool> deleteAccount() async {
     final token = box.read('token');
     if (token == null) return false;
@@ -115,7 +111,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        logout(); // حذف التوكن من الجهاز
+        logout(); 
         return true;
       } else {
         print("Delete account failed: ${response.data}");
@@ -127,22 +123,18 @@ class AuthService {
     }
   }
 
-  /// تسجيل الخروج
   void logout() {
     box.remove('token');
   }
 
-  /// التحقق من تسجيل الدخول
   bool isLoggedIn() {
     return box.read('token') != null;
   }
 
-  /// جلب التوكن
   String? getToken() {
     return box.read('token');
   }
 
-  /// جلب بيانات المستخدم الحالي
   Future<Map<String, dynamic>?> getProfile() async {
     final token = box.read('token');
     if (token == null) return null;
@@ -169,7 +161,6 @@ class AuthService {
     }
   }
 
-  /// ✅ تعديل بيانات البروفايل
   Future<bool> updateProfile({
     required String username,
     required String email,

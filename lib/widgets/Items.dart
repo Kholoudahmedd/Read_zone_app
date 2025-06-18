@@ -33,98 +33,119 @@ class Items extends StatelessWidget {
     return GestureDetector(
       onTap: () => _navigateToBookDetails(bookData),
       child: Container(
-        height: 250,
-        width: 130,
-        margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 5),
-        decoration: BoxDecoration(color: cardColor),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            _buildBookImage(),
-            _buildBookTitle(),
-            _buildAuthorName(authorColor),
-            _buildRating(ratingBgColor, starColor),
+        height: 260,
+        width: 140,
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBookImage() {
-    return Positioned(
-      top: 8,
-      child: Container(
-        height: 200,
-        width: 120,
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(imagePath),
-            fit: BoxFit.cover,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBookTitle() {
-    return Positioned(
-      bottom: 35,
-      child: SizedBox(
-        width: 110,
-        child: Text(
-          title,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-          maxLines: 2,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAuthorName(Color color) {
-    return Positioned(
-      bottom: 20,
-      left: 0,
-      child: SizedBox(
-        width: 110,
-        child: Text(
-          author,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            color: color,
-            fontWeight: FontWeight.bold,
-          ),
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRating(Color bgColor, Color starColor) {
-    return Positioned(
-      bottom: 1,
-      right: 3,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: bgColor,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(Icons.star, size: 14, color: starColor),
-            const SizedBox(width: 4),
-            Text(
-              rating.toStringAsFixed(1),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            // Book Image
+            Container(
+              height: 160,
+              width: 120,
+              margin: const EdgeInsets.only(top: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+                image: DecorationImage(
+                  image: imagePath.startsWith('http')
+                      ? NetworkImage(imagePath)
+                      : AssetImage(imagePath) as ImageProvider,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+
+            // Book Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: SizedBox(
+                width: 120,
+                child: Tooltip(
+                  message: title,
+                  child: Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 13, // تم تقليل حجم الخط
+                      fontWeight: FontWeight.bold,
+                      height: 1, // تحسين تباعد الأسطر
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1, // زيادة إلى سطرين
+                  ),
+                ),
+              ),
+            ),
+
+            // Author Name
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: SizedBox(
+                width: 120,
+                child: Tooltip(
+                  message: author,
+                  child: Text(
+                    author,
+                    style: GoogleFonts.inter(
+                      fontSize: 11, // تم تقليل حجم الخط
+                      color: authorColor,
+                      fontWeight: FontWeight.w500, // تعديل وزن الخط
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            // Rating
+            Padding(
+              padding: const EdgeInsets.only(bottom: 1, right: 8),
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: ratingBgColor,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.star, size: 14, color: starColor),
+                      const SizedBox(width: 2),
+                      Text(
+                        rating.toStringAsFixed(1),
+                        style: GoogleFonts.inter(
+                          fontSize: 11, // تم تقليل حجم الخط
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
