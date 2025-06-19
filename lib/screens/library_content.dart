@@ -63,10 +63,8 @@ class _LibraryContentState extends State<LibraryContent> {
         favorites = List<Map<String, dynamic>>.from(responses[2].data);
         downloads = List<Map<String, dynamic>>.from(responses[3].data);
         _isLoading = false;
-        _hasError = false;
       });
     } catch (e) {
-      print('Error loading library data: $e');
       if (!mounted) return;
       setState(() {
         _isLoading = false;
@@ -130,7 +128,7 @@ class _LibraryContentState extends State<LibraryContent> {
                 child: isRecentlyPlayed
                     ? RecentlyPlayedItems(bookData: item)
                     : LibraryItems(
-                        id: item['id'],
+                        id: item['id'] ?? 0,
                         title: item['title'],
                         authorName: item['authorName'],
                         coverImageUrl: item['coverImageUrl'],
@@ -157,76 +155,84 @@ class _LibraryContentState extends State<LibraryContent> {
               color: getRedColor(context),
               onRefresh: _loadLibraryData,
               child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    SizedBox(height: 20),
-                    Center(
-                      child: Stack(
-                        children: [
-                          Text(
-                            'Library',
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 32,
-                              color: Colors.black.withOpacity(0.1),
-                              shadows: [
-                                Shadow(
-                                  blurRadius: 10,
-                                  offset: Offset(1.0, 1.0),
-                                  color: Colors.black.withOpacity(0.2),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            'Library',
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 32,
-                              color: getRedColor(context),
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 20),
+                    Text(
+                      'Library',
+                      style: GoogleFonts.inter(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 32,
+                        color: getRedColor(context),
                       ),
                     ),
-                    SizedBox(height: 20),
-                    if (_hasError || _isLibraryEmpty())
+                    const SizedBox(height: 20),
+
+                    if (_hasError)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 200),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Failed to load library data',
-                              style: GoogleFonts.inter(
-                                fontSize: 18,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: getRedColor(context),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(50),
+                        padding: const EdgeInsets.only(top: 100),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              const SizedBox(height: 100),
+                              Text(
+                                'Failed to load library data',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              onPressed: _loadLibraryData,
-                              // icon: const Icon(Icons.refresh,
-                              //     color: Colors.white),
-                              label: const Text(
-                                'Retry',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 16),
+                              const SizedBox(height: 20),
+                              ElevatedButton.icon(
+                                onPressed: _loadLibraryData,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: getRedColor(context),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(50),
+                                  ),
+                                ),
+                                label: const Text(
+                                  'Retry',
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 16),
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    if (!_isLibraryEmpty() && !_hasError) ...[
+
+                    if (!_hasError && _isLibraryEmpty())
+                      Padding(
+                        padding: const EdgeInsets.only(top: 100),
+                        child: Center(
+                          child: Column(
+                            children: [
+                              Image.asset(
+                                'assets/images/empty_library.png',
+                                height: 300,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'Your library is empty.\nStart exploring and add your favorites!',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                    /// عرض المكتبة إذا فيها بيانات
+                    if (!_hasError && !_isLibraryEmpty()) ...[
                       _buildLibrarySection(
                         title: 'Recently Played',
                         items: recentlyPlayed,
@@ -236,75 +242,19 @@ class _LibraryContentState extends State<LibraryContent> {
                       _buildLibrarySection(
                         title: 'Bookmarks',
                         items: bookmarks,
-                        destination: Bookmarks(
-                          id: bookmarks.isNotEmpty ? bookmarks[0]['id'] : null,
-                          title:
-                              bookmarks.isNotEmpty ? bookmarks[0]['title'] : '',
-                          authorName: bookmarks.isNotEmpty
-                              ? bookmarks[0]['authorName']
-                              : '',
-                          coverImageUrl: bookmarks.isNotEmpty
-                              ? bookmarks[0]['coverImageUrl']
-                              : '',
-                          category: bookmarks.isNotEmpty
-                              ? (bookmarks[0]['category'] ?? 'General')
-                              : 'General',
-                          language: bookmarks.isNotEmpty
-                              ? (bookmarks[0]['language'] ?? 'English')
-                              : 'English',
-                          rating: bookmarks.isNotEmpty
-                              ? (bookmarks[0]['rating'] ?? 4).toDouble()
-                              : 4.0,
-                        ),
+                        destination: Bookmarks(),
                       ),
                       _buildLibrarySection(
                         title: 'Favourites',
                         items: favorites,
-                        destination: FavouritesScreen(
-                          id: favorites.isNotEmpty ? favorites[0]['id'] : null,
-                          title:
-                              favorites.isNotEmpty ? favorites[0]['title'] : '',
-                          authorName: favorites.isNotEmpty
-                              ? favorites[0]['authorName']
-                              : '',
-                          coverImageUrl: favorites.isNotEmpty
-                              ? favorites[0]['coverImageUrl']
-                              : '',
-                          category: favorites.isNotEmpty
-                              ? (favorites[0]['category'] ?? 'General')
-                              : 'General',
-                          language: favorites.isNotEmpty
-                              ? (favorites[0]['language'] ?? 'English')
-                              : 'English',
-                          rating: favorites.isNotEmpty
-                              ? (favorites[0]['rating'] ?? 4).toDouble()
-                              : 4.0,
-                        ),
+                        destination: FavouritesScreen(),
                       ),
                       _buildLibrarySection(
                         title: 'Downloads',
                         items: downloads,
-                        destination: Downloads(
-                          title:
-                              downloads.isNotEmpty ? downloads[0]['title'] : '',
-                          authorName: downloads.isNotEmpty
-                              ? downloads[0]['authorName']
-                              : '',
-                          coverImageUrl: downloads.isNotEmpty
-                              ? downloads[0]['coverImageUrl']
-                              : '',
-                          category: downloads.isNotEmpty
-                              ? (downloads[0]['category'] ?? 'General')
-                              : 'General',
-                          language: downloads.isNotEmpty
-                              ? (downloads[0]['language'] ?? 'English')
-                              : 'English',
-                          rating: downloads.isNotEmpty
-                              ? (downloads[0]['rating'] ?? 4).toDouble()
-                              : 4.0,
-                        ),
+                        destination: Downloads(),
                       ),
-                      SizedBox(height: 100),
+                      const SizedBox(height: 100),
                     ],
                   ],
                 ),

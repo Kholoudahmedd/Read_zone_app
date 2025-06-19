@@ -6,6 +6,7 @@ import 'package:read_zone_app/screens/rating_and_reviews_empty.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
+import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 class RatingPage extends StatefulWidget {
@@ -38,6 +39,16 @@ class _RatingPageState extends State<RatingPage> {
     super.initState();
     _loadTheme();
     _fetchReviews();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleRefreshAfterReview();
+    });
+  }
+
+  void _handleRefreshAfterReview() {
+    final shouldRefresh = Get.arguments?['refresh'] ?? false;
+    if (shouldRefresh) {
+      _fetchReviews();
+    }
   }
 
   void _loadTheme() {
@@ -49,6 +60,10 @@ class _RatingPageState extends State<RatingPage> {
   }
 
   Future<void> _fetchReviews() async {
+    setState(() {
+      isLoading = true;
+    });
+
     try {
       final token = storage.read('token');
       final response = await dio.get(
@@ -89,6 +104,8 @@ class _RatingPageState extends State<RatingPage> {
             child: Container(
               color: getitemColor(context),
               child: TabBar(
+                dividerColor: Colors.transparent,
+                indicatorColor: getRedColor(context),
                 labelStyle: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -127,27 +144,31 @@ class _RatingPageState extends State<RatingPage> {
           body: isLoading
               ? Center(
                   child: CircularProgressIndicator(color: getRedColor(context)))
-              : TabBarView(
-                  children: [
-                    reviews.isEmpty
-                        ? RatingAndReviewsEmpty(
-                            bookId: widget.bookId,
-                            title: widget.title,
-                            author: widget.author,
-                          )
-                        : Reviews(
-                            bookData: {},
-                            bookId: widget.bookId,
-                            title: widget.title,
-                            author: widget.author,
-                          ),
-                    DescriptionPage(
-                      bookId: widget.bookId,
-                      title: widget.title,
-                      author: widget.author,
-                      bookData: {},
-                    ),
-                  ],
+              : RefreshIndicator(
+                  color: getRedColor(context),
+                  backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                  onRefresh: _fetchReviews,
+                  child: TabBarView(
+                    children: [
+                      reviews.isEmpty
+                          ? RatingAndReviewsEmpty(
+                              bookId: widget.bookId,
+                              title: widget.title,
+                              author: widget.author,
+                            )
+                          : Reviews(
+                              bookData: {},
+                              bookId: widget.bookId,
+                              title: widget.title,
+                              author: widget.author,
+                            ),
+                      DescriptionPage(
+                        bookId: widget.bookId,
+                        title: widget.title,
+                        author: widget.author,
+                      ),
+                    ],
+                  ),
                 ),
         ),
       ),

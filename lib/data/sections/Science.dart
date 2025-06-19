@@ -105,7 +105,7 @@ class _scienceState extends State<science> {
 
     return ListView.builder(
       scrollDirection: Axis.horizontal,
-      itemCount: 10,
+      itemCount: sciences.length,
       itemBuilder: (context, index) {
         return NewarrivalItems(bookData: sciences[index]);
       },

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:http_parser/http_parser.dart'; // مهم لرفع الصور
+import 'package:http_parser/http_parser.dart';
 
 class AuthService {
   final Dio dio = Dio(
@@ -51,12 +51,7 @@ class AuthService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print("Registration failed: ${response.data}");
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       print("Register error: $e");
       return false;
@@ -84,12 +79,7 @@ class AuthService {
         ),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print("Change password failed: ${response.data}");
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       print("Change password error: $e");
       return false;
@@ -111,7 +101,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        logout(); 
+        logout(); // حذف التوكن والبيانات عند نجاح الحذف
         return true;
       } else {
         print("Delete account failed: ${response.data}");
@@ -125,6 +115,7 @@ class AuthService {
 
   void logout() {
     box.remove('token');
+    box.remove('user');
   }
 
   bool isLoggedIn() {
@@ -184,19 +175,13 @@ class AuthService {
         ),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print("Update profile failed: ${response.data}");
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       print("Update profile error: $e");
       return false;
     }
   }
 
-  /// ✅ رفع صورة البروفايل
   Future<bool> uploadProfileImage(File imageFile) async {
     final token = box.read('token');
     if (token == null) return false;
@@ -206,7 +191,7 @@ class AuthService {
         'file': await MultipartFile.fromFile(
           imageFile.path,
           filename: imageFile.path.split('/').last,
-          contentType: MediaType('image', 'jpeg'), // أو image/png حسب النوع
+          contentType: MediaType('image', 'jpeg'),
         ),
       });
 
@@ -221,12 +206,7 @@ class AuthService {
         ),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print("Upload image failed: ${response.data}");
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       print("Upload image error: $e");
       return false;

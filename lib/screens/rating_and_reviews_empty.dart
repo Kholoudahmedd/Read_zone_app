@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:read_zone_app/screens/rating_page.dart';
 import 'package:read_zone_app/screens/write_review.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class RatingAndReviewsEmpty extends StatefulWidget {
   const RatingAndReviewsEmpty({
@@ -23,9 +23,14 @@ class RatingAndReviewsEmpty extends StatefulWidget {
 
 class _RatingAndReviewsEmptyState extends State<RatingAndReviewsEmpty> {
   Future<void> _loadReviews() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    List<String> storedReviews = prefs.getStringList('reviews') ?? [];
-  }
+    // بعد التحديث انتقل لصفحة الريفيوز
+    await Future.delayed(Duration(milliseconds: 500)); // تأخير بسيط
+    Get.off(() => RatingPage(
+          bookId: widget.bookId,
+          title: widget.title,
+          author: widget.author,
+        ));
+  } // يمكنك تعديل البيانات حسب الحاجة
 
   @override
   Widget build(BuildContext context) {
@@ -81,8 +86,13 @@ class _RatingAndReviewsEmptyState extends State<RatingAndReviewsEmpty> {
                     color: getTextColor2(context),
                   ),
                 ),
-                SizedBox(height: MediaQuery.of(context).size.height * 0.25),
-                ReviewButton(bookExternalId: widget.bookId),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+                ReviewButton(
+                  bookExternalId: widget.bookId,
+                  title: widget.title,
+                  author: widget.author,
+                  bookData: {}, // يمكنك إضافة بيانات إضافية إن أردت
+                ),
               ],
             ),
           ),
@@ -94,14 +104,25 @@ class _RatingAndReviewsEmptyState extends State<RatingAndReviewsEmpty> {
 
 class ReviewButton extends StatelessWidget {
   final int bookExternalId;
+  final String title;
+  final String author;
+  final Map<String, dynamic> bookData;
 
-  const ReviewButton({super.key, required this.bookExternalId});
+  const ReviewButton({
+    super.key,
+    required this.bookExternalId,
+    required this.title,
+    required this.author,
+    required this.bookData,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MaterialButton(
-      onPressed: () {
-        Get.to(WriteReviewScreen(bookExternalId: bookExternalId));
+      onPressed: () async {
+        await Get.to(() => WriteReviewScreen(bookExternalId: bookExternalId));
+        Get.off(() =>
+            RatingPage(bookId: bookExternalId, title: title, author: author));
       },
       child: Text(
         'Write Review',

@@ -8,22 +8,7 @@ import 'package:read_zone_app/screens/book_details.dart';
 import 'package:read_zone_app/themes/colors.dart';
 
 class Downloads extends StatefulWidget {
-  final String title;
-  final String authorName;
-  final String coverImageUrl;
-  final String category;
-  final String language;
-  final double rating;
-
-  const Downloads({
-    super.key,
-    required this.title,
-    required this.authorName,
-    required this.coverImageUrl,
-    required this.category,
-    required this.language,
-    required this.rating,
-  });
+  const Downloads({super.key});
 
   @override
   _DownloadsState createState() => _DownloadsState();
@@ -110,8 +95,7 @@ class _DownloadsState extends State<Downloads> {
           ),
         ),
         body: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(color: getRedColor(context)))
+            ? Center(child: CircularProgressIndicator(color: getRedColor(context)))
             : _downloadedBooks.isEmpty
                 ? Center(
                     child: Column(
@@ -149,7 +133,7 @@ class _DownloadsState extends State<Downloads> {
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        final book = _downloadedBooks[index];
+                        final Map<String, dynamic> book = _downloadedBooks[index];
                         return _buildDownloadItem(book);
                       },
                     ),

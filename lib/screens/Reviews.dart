@@ -3,7 +3,7 @@ import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:read_zone_app/screens/rating_and_reviews_empty.dart';
-import 'package:read_zone_app/services/auth_service.dart';
+import 'package:read_zone_app/screens/write_review.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:read_zone_app/widgets/Review_content.dart';
 import 'package:dio/dio.dart';
@@ -32,44 +32,19 @@ class _ReviewsState extends State<Reviews> {
   double averageRating = 0.0;
   List<double> ratingDistribution = [0, 0, 0, 0, 0];
   bool isLoading = true;
-  String? username;
-  String? email;
-  String? userImage;
 
   final String baseUrl = 'https://myfirstapi.runasp.net/';
-
   final Dio dio =
       Dio(BaseOptions(baseUrl: 'https://myfirstapi.runasp.net/api'));
   final storage = GetStorage();
 
+  int? currentUserId;
+
   @override
   void initState() {
     super.initState();
+    currentUserId = storage.read('userId');
     _loadReviews();
-  }
-
-  void loadUserProfile() async {
-    final authService = AuthService();
-    final profile = await authService.getProfile();
-
-    if (!mounted) return;
-
-    if (profile != null) {
-      final profileImage = profile['profileImageUrl'];
-      setState(() {
-        username = profile['username'];
-        email = profile['email'];
-        userImage = profileImage != null && profileImage != ''
-            ? '$baseUrl$profileImage'
-            : null;
-        isLoading = false;
-      });
-    } else {
-      print("ERROR: Failed to load user profile");
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 
   Future<void> _loadReviews() async {
@@ -90,8 +65,7 @@ class _ReviewsState extends State<Reviews> {
       List<Map<String, dynamic>> fetchedReviews = data.map((review) {
         return {
           "userName": review['user']?['username'] ?? "Unknown user",
-          "profileImage": review['user']?['profileImageUrl'] ??
-              'https://yourdomain.com/default_profile.png',
+          "profileImage": review['user']?['profileImageUrl'] ?? '',
           "review": review["feedback"] ?? "",
           "rating": (review["rating"] ?? 0.0).toDouble(),
           "time":
@@ -100,6 +74,7 @@ class _ReviewsState extends State<Reviews> {
           "reviewId": review["id"],
         };
       }).toList();
+
       fetchedReviews.sort((a, b) => b['time'].compareTo(a['time']));
 
       if (!mounted) return;
@@ -261,10 +236,12 @@ class _ReviewsState extends State<Reviews> {
                             ...reviews.asMap().entries.map((entry) {
                               int index = entry.key;
                               var review = entry.value;
-
+                              String currentUsername =
+                                  storage.read('username') ?? '';
                               return ReviewContent(
-                                userName:
-                                    review['userName'] ?? 'Anonymous user',
+                                reviewId: review['reviewId'],
+                                currentUsername: currentUsername,
+                                userName: review['userName'] ?? 'Anonymous',
                                 reviewText: review['review'],
                                 rating: review['rating'],
                                 time: review['time'],
@@ -277,11 +254,41 @@ class _ReviewsState extends State<Reviews> {
                         ),
                       ),
                     ),
+
                     Positioned(
                       bottom: 20,
                       left: 20,
                       right: 20,
-                      child: ReviewButton(bookExternalId: widget.bookId),
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WriteReviewScreen(
+                                bookExternalId: widget.bookId,
+                              ),
+                            ),
+                          );
+                          if (result == true) {
+                            _loadReviews(); // 🔁 تحديث الريفيوهات مباشرة بعد الرجوع
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: getRedColor(context),
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        child: Text(
+                          "Write a Review",
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: getTextColor2(context),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

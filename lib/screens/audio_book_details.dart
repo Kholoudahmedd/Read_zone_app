@@ -136,15 +136,13 @@ class _AudioBookDetailsState extends State<AudioBookDetails> {
         ];
 
         if (!mounted) return;
-        setState(() {
-        });
+        setState(() {});
       } else {
         throw Exception('Failed to load book details');
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-      });
+      setState(() {});
     }
   }
 
@@ -288,18 +286,21 @@ class _AudioBookDetailsState extends State<AudioBookDetails> {
                       //     ],
                       //   ),
                       // ),
-                      Text(
-                        widget.title,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                        style: GoogleFonts.inter(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          shadows: const [
-                            Shadow(color: Colors.blueGrey, blurRadius: 5)
-                          ],
+                      SizedBox(
+                        width: 359,
+                        child: Text(
+                          widget.title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: GoogleFonts.inter(
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                            shadows: const [
+                              Shadow(color: Colors.blueGrey, blurRadius: 5)
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                       Text(
                         widget.creator,

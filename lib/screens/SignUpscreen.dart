@@ -231,25 +231,31 @@ class _SignupscreenState extends State<Signupscreen> {
                                   } else {
                                     print(
                                         "❌ فشل تسجيل المستخدم: ${response.statusCode}");
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text(
-                                          'Failed to register: ${response.statusCode}'),
-                                    ));
+                                    Get.snackbar(
+                                      'Registration Failed',
+                                      'Failed to register: ${response.statusCode}',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                      
+                                      colorText: Colors.white,
+                                    );
                                   }
                                 } catch (e) {
                                   if (e is DioException && e.response != null) {
                                     print("❌ API Error: ${e.response!.data}");
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text('${e.response!.data}'),
-                                    ));
+                                    Get.snackbar(
+                                      'Error',
+                                      '${e.response!.data}',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                      colorText: Colors.white,
+                                    );
                                   } else {
                                     print("❌ Unexpected Error: $e");
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(SnackBar(
-                                      content: Text('Unexpected Error: $e'),
-                                    ));
+                                    Get.snackbar(
+                                      'Unexpected Error',
+                                      '$e',
+                                      snackPosition: SnackPosition.BOTTOM,
+                                      colorText: Colors.white,
+                                    );
                                   }
                                 }
 

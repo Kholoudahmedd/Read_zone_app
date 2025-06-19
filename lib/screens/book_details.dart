@@ -71,6 +71,7 @@ class _BookDetailsState extends State<BookDetails> {
   }
 
   Future<void> _loadRecommendations() async {
+    if (!mounted) return;
     setState(() {
       _isLoadingRecommendations = true;
     });
@@ -78,6 +79,7 @@ class _BookDetailsState extends State<BookDetails> {
     final recommendations =
         await _fetchRecommendations(widget.bookData['title'] ?? '');
 
+    if (!mounted) return;
     setState(() {
       _recommendations = recommendations;
       _isLoadingRecommendations = false;
@@ -385,21 +387,6 @@ class _BookDetailsState extends State<BookDetails> {
             ),
           ),
           const Spacer(),
-          _isLoadingDownload
-              ? SizedBox(
-                  height: 24,
-                  width: 24,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: getRedColor(context)),
-                )
-              : IconButton(
-                  icon: Icon(
-                    _isDownloaded ? Icons.download_done : Icons.download,
-                    color: getRedColor(context),
-                    size: 30,
-                  ),
-                  onPressed: _toggleDownload,
-                ),
         ],
       ),
     );

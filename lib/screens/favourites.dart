@@ -8,24 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
 
 class FavouritesScreen extends StatefulWidget {
-  final int id;
-  final String title;
-  final String authorName;
-  final String coverImageUrl;
-  final String category;
-  final String language;
-  final double rating;
-
-  const FavouritesScreen({
-    super.key,
-    required this.id,
-    required this.title,
-    required this.authorName,
-    required this.coverImageUrl,
-    required this.category,
-    required this.language,
-    required this.rating,
-  });
+  const FavouritesScreen({super.key});
 
   @override
   State<FavouritesScreen> createState() => _FavouritesScreenState();
@@ -111,8 +94,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
           ),
         ),
         body: _isLoading
-            ? Center(
-                child: CircularProgressIndicator(color: getRedColor(context)))
+            ? Center(child: CircularProgressIndicator(color: getRedColor(context)))
             : _favourites.isEmpty
                 ? Center(
                     child: Column(
@@ -134,8 +116,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                     child: ListView.separated(
                       physics: const AlwaysScrollableScrollPhysics(),
                       itemCount: _favourites.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final book = _favourites[index];
                         return _buildFavoriteItem(book);
@@ -176,9 +157,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                       return SizedBox(
                         width: 110,
                         height: 160,
-                        child: Center(
-                            child: CircularProgressIndicator(
-                                color: getRedColor(context))),
+                        child: Center(child: CircularProgressIndicator(color: getRedColor(context))),
                       );
                     },
                   )
@@ -235,11 +214,7 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
             icon: CircleAvatar(
               radius: 20,
               backgroundColor: getRedColor(context),
-              child: const Icon(
-                Icons.star_rounded,
-                color: Colors.white,
-                size: 22,
-              ),
+              child: const Icon(Icons.star_rounded, color: Colors.white, size: 22),
             ),
             onPressed: () => _removeFavourite(book['id'].toString()),
           ),

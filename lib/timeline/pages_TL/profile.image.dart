@@ -172,6 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               const SizedBox(),
               TabBar(
+                dividerColor: Colors.transparent,
                 labelColor: getRedColor(context),
                 unselectedLabelColor: Colors.grey,
                 indicatorColor: getRedColor(context),

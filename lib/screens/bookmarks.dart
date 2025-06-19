@@ -8,23 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:get_storage/get_storage.dart';
 
 class Bookmarks extends StatefulWidget {
-  final int id;
-  final String title;
-  final String authorName;
-  final String coverImageUrl;
-  final String category;
-  final String language;
-  final double rating;
-  const Bookmarks({
-    super.key,
-    required this.id,
-    required this.title,
-    required this.authorName,
-    required this.coverImageUrl,
-    required this.category,
-    required this.language,
-    required this.rating,
-  });
+  const Bookmarks({super.key});
 
   @override
   State<Bookmarks> createState() => _BookmarksState();
@@ -108,9 +92,7 @@ class _BookmarksState extends State<Bookmarks> {
         ),
         body: _isLoading
             ? Center(
-                child: CircularProgressIndicator(
-                color: getRedColor(context),
-              ))
+                child: CircularProgressIndicator(color: getRedColor(context)))
             : _bookmarks.isEmpty
                 ? Center(
                     child: Text(
@@ -128,7 +110,7 @@ class _BookmarksState extends State<Bookmarks> {
                       padding: const EdgeInsets.all(16),
                       itemCount: _bookmarks.length,
                       itemBuilder: (context, index) {
-                        final book = _bookmarks[index];
+                        final Map<String, dynamic> book = _bookmarks[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: Container(
