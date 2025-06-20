@@ -19,11 +19,10 @@ class BookDetails extends StatefulWidget {
 class _BookDetailsState extends State<BookDetails> {
   bool _isFavorite = false;
   bool _isBookmarked = false;
-  bool _isDownloaded = false;
   bool _isLoadingStatus = true;
   bool _isLoadingFavorite = false;
   bool _isLoadingBookmark = false;
-  bool _isLoadingDownload = false;
+  // bool _isLoadingDownload = false;
   bool isDarkMode = false;
   final Dio dio = Dio();
   final box = GetStorage();
@@ -63,7 +62,6 @@ class _BookDetailsState extends State<BookDetails> {
 
     await check('favorites', (v) => _isFavorite = v);
     await check('bookmarks', (v) => _isBookmarked = v);
-    await check('downloads', (v) => _isDownloaded = v);
 
     setState(() {
       _isLoadingStatus = false;
@@ -156,14 +154,14 @@ class _BookDetailsState extends State<BookDetails> {
     );
   }
 
-  Future<void> _toggleDownload() async {
-    await _toggleBookStatus(
-      type: 'downloads',
-      currentStatus: _isDownloaded,
-      setter: (v) => _isDownloaded = v,
-      loadingSetter: (v) => _isLoadingDownload = v,
-    );
-  }
+  // Future<void> _toggleDownload() async {
+  //   await _toggleBookStatus(
+  //     type: 'downloads',
+  //     currentStatus: _isDownloaded,
+  //     setter: (v) => _isDownloaded = v,
+  //     loadingSetter: (v) => _isLoadingDownload = v,
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {

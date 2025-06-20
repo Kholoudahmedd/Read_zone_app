@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import '../model_TL/model_post.dart';
-import '../icons_TL/comment_icon.dart'; // أيقونة التعليق
-import '../icons_TL/favourite_icon.dart'; // أيقونة المفضلة
-import '../icons_TL/love_icon.dart'; // أيقونة الإعجاب
-import '../pages_TL/comment_page.dart'; // استيراد صفحة التعليقات
+import '../icons_TL/comment_icon.dart';
+import '../icons_TL/favourite_icon.dart';
+import '../icons_TL/love_icon.dart';
+import '../pages_TL/comment_page.dart';
+import '../model_TL/api_service.dart';
+import '../pages_TL/love_page.dart';
 
 class PostWidget extends StatefulWidget {
   final PostModel post;
   final VoidCallback onDelete;
+  final ValueChanged<bool>? onFavoriteChanged; // 🔴 جديد
 
-  const PostWidget({Key? key, required this.post, required this.onDelete})
-      : super(key: key);
+  const PostWidget({
+    Key? key,
+    required this.post,
+    required this.onDelete,
+    this.onFavoriteChanged,
+  }) : super(key: key);
 
   @override
   _PostWidgetState createState() => _PostWidgetState();
@@ -19,18 +26,36 @@ class PostWidget extends StatefulWidget {
 
 class _PostWidgetState extends State<PostWidget> {
   late PostModel post;
+  int likeCount = 0;
 
   @override
   void initState() {
     super.initState();
-    post = widget.post; // تخزين بيانات البوست
+    post = widget.post;
+    loadLikeCount();
+    loadCommentCount();
   }
 
-  // تبديل حالة الإعجاب
-  void toggleLove() {
-    setState(() {
-      post.toggleLove();
-    });
+  Future<void> loadLikeCount() async {
+    try {
+      final count = await ApiService.getPostLikeCount(post.id);
+      setState(() {
+        likeCount = count;
+      });
+    } catch (e) {
+      print('❌ Error loading like count: $e');
+    }
+  }
+
+  Future<void> loadCommentCount() async {
+    try {
+      final count = await ApiService.getPostCommentCount(post.id);
+      setState(() {
+        post.commentCount = count;
+      });
+    } catch (e) {
+      print('❌ Error loading comment count: $e');
+    }
   }
 
   @override
@@ -38,7 +63,6 @@ class _PostWidgetState extends State<PostWidget> {
     final Color textColor =
         Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black;
     final Color cardColor = Theme.of(context).scaffoldBackgroundColor;
-    final Color secondaryColor = Theme.of(context).secondaryHeaderColor;
 
     return Card(
       margin: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
@@ -49,12 +73,18 @@ class _PostWidgetState extends State<PostWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            //  الجزء العلوي: صورة البروفايل، الاسم، الوقت، وأيقونة الحذف
+            // 🟢 عنوان البوست
             Row(
               children: [
                 CircleAvatar(
-                  backgroundImage: AssetImage(post.profileImage),
+                  backgroundImage: post.profileImage != null
+                      ? NetworkImage(post.profileImage!)
+                      : null,
                   radius: 25,
+                  backgroundColor: Colors.grey.shade300,
+                  child: post.profileImage == null
+                      ? Icon(Icons.person, color: Colors.white)
+                      : null,
                 ),
                 SizedBox(width: 10),
                 Column(
@@ -82,64 +112,136 @@ class _PostWidgetState extends State<PostWidget> {
                   ],
                 ),
                 Spacer(),
-                IconButton(
-                  icon: Icon(Icons.close, color: Colors.grey),
-                  onPressed: () {
-                    widget.onDelete();
-                  },
-                ),
+
+                // ✅ زر الحذف يظهر فقط إذا كان البوست خاص بالمستخدم الحالي
+                post.isMine
+                    ? IconButton(
+                        icon: Icon(Icons.close, color: Colors.grey),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: Text("Delete Confirmation"),
+                              content: Text(
+                                  "Are you sure you want to delete this post?"),
+                              actions: [
+                                TextButton(
+                                  child: Text("Cancel"),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                ),
+                                TextButton(
+                                  child: Text("Delete"),
+                                  onPressed: () => Navigator.pop(context, true),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            final success =
+                                await ApiService.deletePost(post.id);
+                            if (success) {
+                              widget.onDelete();
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(
+                                        "Failed to delete post from server")),
+                              );
+                            }
+                          }
+                        },
+                      )
+                    : SizedBox.shrink(),
               ],
             ),
             SizedBox(height: 10),
 
-            // محتوي البوست (صورة +نص)
             if (post.postText.isNotEmpty)
               Text(
                 post.postText,
                 style: TextStyle(fontSize: 16, color: textColor),
               ),
+
             if (post.postImage != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
+                  child: Image.network(
                     post.postImage!,
                     fit: BoxFit.cover,
                     width: MediaQuery.of(context).size.width,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.broken_image),
                   ),
                 ),
               ),
 
-            //   (إعجاب - مفضلة - تعليق)
+            // 🟢 صف التفاعل
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Row(
                   children: [
+                    LoveIcon(
+                      post: post,
+                      onUpdate: () async {
+                        await loadLikeCount();
+                      },
+                    ),
+                    SizedBox(width: 5),
                     GestureDetector(
-                      onTap: toggleLove, // تفعيل الإعجاب عند النقر
-                      child: LoveIcon(post: post),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => LovePage(post: post),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        likeCount.toString(),
+                        style: TextStyle(color: textColor),
+                      ),
                     ),
                   ],
                 ),
-                Row(children: [FavoriteIcon(post: post), SizedBox(width: 5)]),
+                FavoriteIcon(
+                  post: post,
+                  onFavoriteChanged: (newStatus) {
+                    setState(() {
+                      post.isFavorited = newStatus;
+                    });
+
+                    // نبلغ الصفحة اللي فيها البوست إنه حصل تغيير
+                    widget.onFavoriteChanged?.call(newStatus);
+                  },
+                ),
                 Row(
                   children: [
                     CommentIcon(
                       onPressed: () async {
-                        await Navigator.push(
+                        final updatedComments =
+                            await Navigator.push<List<Commenter>>(
                           context,
                           MaterialPageRoute(
                             builder: (context) => CommentPage(post: post),
                           ),
                         );
-                        setState(() {}); // تحديث الواجهة بعد التعليق
+
+                        if (updatedComments != null) {
+                          setState(() {
+                            post.commenters = updatedComments;
+                          });
+                          await loadCommentCount();
+                        }
                       },
                     ),
                     SizedBox(width: 5),
                     Text(
-                      post.commenters.length.toString(),
+                      (post.commentCount ?? 0).toString(),
                       style: TextStyle(color: textColor),
                     ),
                   ],

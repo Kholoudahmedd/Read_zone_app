@@ -16,8 +16,8 @@ class BookCollectionPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           title, //  عنوان القسم
-          style:
-              TextStyle(color: getRedColor(context), fontWeight: FontWeight.bold),
+          style: TextStyle(
+              color: getRedColor(context), fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.transparent,
         scrolledUnderElevation: 0,
@@ -32,12 +32,15 @@ class BookCollectionPage extends StatelessWidget {
             crossAxisSpacing: 16,
             mainAxisSpacing: 7,
           ),
-          itemCount:
-              books.length < 5 ? 30 : books.length, //  تكرار القائمة عند الحاجة
+          itemCount: books.length,
+
+          //    books.length < 5 ? 30 : books.length, //  تكرار القائمة عند الحاجة
           itemBuilder: (context, index) {
             return Center(
               child: BookCard(
-                book: books[index % books.length], //  تكرار عند الحاجة
+                book: books[index],
+
+                //book: books[index % books.length], //  تكرار عند الحاجة
                 index: index,
               ),
             );

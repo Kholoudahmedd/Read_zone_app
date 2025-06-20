@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:read_zone_app/Notfication/main.dart';
+import 'package:read_zone_app/Notfication/notification.dart';
 import 'package:read_zone_app/chat/screens/screenhome.dart';
 import 'package:read_zone_app/screens/Settings.dart' as custom_settings;
 import 'package:read_zone_app/screens/homepage_content.dart';
@@ -12,7 +12,6 @@ import 'package:read_zone_app/screens/notes_items.dart';
 import 'package:read_zone_app/services/auth_service.dart';
 import 'package:read_zone_app/store/main.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import 'package:read_zone_app/timeline/model_TL/model_post.dart';
 import 'package:read_zone_app/timeline/pages_TL/Timeline_page.dart';
 import 'package:read_zone_app/timeline/pages_TL/profile.image.dart'
     show ProfilePage;
@@ -127,8 +126,7 @@ class _HomepageState extends State<Homepage> {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) =>
-                                ProfilePage(user: currentUser),
+                            builder: (context) => ProfilePage(),
                           ),
                         );
                         _loadUserHeaderImage(); // إعادة تحميل الصورة عند العودة
@@ -172,11 +170,12 @@ class _HomepageState extends State<Homepage> {
               onTap: () => Get.to(() => custom_settings.Settings()),
             ),
             ListTile(
-              title: Text('Notification',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-              leading: _buildIcon(context, 'assets/icon/notfication.png'),
-              onTap: () => Get.to(() => NotificationApp()),
-            ),
+                title: Text('Notification',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                leading: _buildIcon(context, 'assets/icon/notfication.png'),
+                onTap: () => Get.to(
+                      () => NotificationScreen(),
+                    )),
             ListTile(
               title: Text('My Notes',
                   style: GoogleFonts.inter(fontWeight: FontWeight.bold)),

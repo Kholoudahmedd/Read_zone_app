@@ -1,28 +1,33 @@
 class Book {
-  final String id;
+  final int id;
   final String title;
-  final String author;
+  final String coverImageUrl;
+  final String author; // ناخد أول اسم فقط من القائمة
   final double price;
-  final String imagepath;
   final String description;
 
   Book({
     required this.id,
     required this.title,
+    required this.coverImageUrl,
     required this.author,
     required this.price,
-    required this.imagepath,
     required this.description,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
+    print("📚 JSON Authors: ${json['authors']}");
+
     return Book(
-      id: json['id'],
-      title: json['title'],
-      author: json['author'],
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      imagepath: json['imagepath'],
-      description: json['description'],
+      id: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      //coverImageUrl: json['coverImageUrl'] ?? '',
+      coverImageUrl: (json['coverImageUrl'] ?? '').trim(),
+
+      author: json['authorName'] ?? 'Unknown',
+
+      price: (json['price'] as num?)?.toDouble() ?? 0.0, // حتى لو لسه مش موجود
+      description: json['description'] ?? '', // حتى لو مش موجود حاليا
     );
   }
 }

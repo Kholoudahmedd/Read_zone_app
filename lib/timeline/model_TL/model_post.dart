@@ -1,194 +1,689 @@
-import 'dart:io';
+// class PostModel {
+//   final int id;
+//   final String profileImage;
+//   final String username;
+//   final String timeAgo;
+//   final String postText;
+//   final String? postImage;
+
+//   int likeCount;
+//   bool isLoved;
+
+//   List<Commenter> commenters;
+//   bool isFavorited;
+
+//   PostModel({
+//     required this.id,
+//     required this.profileImage,
+//     required this.username,
+//     required this.timeAgo,
+//     required this.postText,
+//     this.postImage,
+//     this.likeCount = 0,
+//     this.isLoved = false,
+//     List<Commenter>? commenters,
+//     this.isFavorited = false,
+//   }) : commenters = commenters ?? [];
+
+//   int get commentsCount => commenters.length;
+
+//   factory PostModel.fromJson(Map<String, dynamic> json) {
+//     return PostModel(
+//       id: json['id'] is int
+//           ? json['id']
+//           : int.tryParse(json['id'].toString()) ?? 0,
+//       profileImage: json['profileImageUrl'] ?? '',
+//       username: json['username'] ?? '',
+//       timeAgo: json['createdAt'] ?? '',
+//       postText: json['content'] ?? '',
+//       postImage: json['postImage'],
+//       likeCount: json['likeCount'] ?? 0,
+//       isLoved: json['isLoved'] ?? false,
+//       isFavorited: json['isFavorited'] ?? false,
+//       commenters: (json['comments'] as List<dynamic>?)
+//               ?.map((commentJson) => Commenter.fromJson(commentJson))
+//               .toList() ??
+//           [],
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'profileImageUrl': profileImage,
+//       'username': username,
+//       'createdAt': timeAgo,
+//       'content': postText,
+//       'postImage': postImage,
+//       'isFavorited': isFavorited,
+//     };
+//   }
+// }
+
+// class Liker {
+//   final int userId;
+//   final String username;
+//   final String profileImageUrl;
+
+//   Liker({
+//     required this.userId,
+//     required this.username,
+//     required this.profileImageUrl,
+//   });
+
+//   factory Liker.fromJson(Map<String, dynamic> json) {
+//     return Liker(
+//       userId: json['userId'],
+//       username: json['username'],
+//       profileImageUrl: json['profileImageUrl'],
+//     );
+//   }
+// }
+
+// class Commenter {
+//   final String username;
+//   final String profileImage;
+//   final String commentText;
+
+//   Commenter({
+//     required this.username,
+//     required this.profileImage,
+//     required this.commentText,
+//   });
+
+//   // factory Commenter.fromJson(Map<String, dynamic> json) {
+//   //   return Commenter(
+//   //     username: json['username'] ?? '',
+//   //     profileImage: json['profileImage'] ?? '',
+//   //     commentText: json['commentText'] ?? '',
+//   //   );
+//   // // }
+//   // factory Commenter.fromJson(Map<String, dynamic> json) {
+//   //   return Commenter(
+//   //     username: json['username'] ?? '',
+//   //     profileImage: json['profileImage'] ?? json['profileImageUrl'] ?? '',
+//   //     commentText: json['commentText'] ?? json['text'] ?? '',
+//   //   );
+//   // }
+//   // factory Commenter.fromJson(Map<String, dynamic> json) {
+//   //   return Commenter(
+//   //     username: json['username'] ?? '',
+//   //     profileImage: json['profileImage'] ?? json['profileImageUrl'] ?? '',
+//   //     commentText: json['text'] ?? '',
+//   //   );
+//   // }
+//   factory Commenter.fromJson(Map<String, dynamic> json) {
+//     return Commenter(
+//       username: json['username'] ?? '',
+//       profileImage: json['profileImage'] ?? json['profileImageUrl'] ?? '',
+//       commentText: json['commentText'] ?? json['text'] ?? '',
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'username': username,
+//       'profileImage': profileImage,
+//       'commentText': commentText,
+//     };
+//   }
+// }
+// class PostModel {
+//   final int id;
+//   final String? profileImage; // ممكن تكون null
+//   final String username;
+//   final String timeAgo;
+//   final String postText;
+//   final String? postImage;
+
+//   int likeCount;
+//   bool isLoved;
+//   bool isFavorited;
+//   List<Commenter> commenters;
+
+//   PostModel({
+//     required this.id,
+//     required this.profileImage,
+//     required this.username,
+//     required this.timeAgo,
+//     required this.postText,
+//     this.postImage,
+//     this.likeCount = 0,
+//     this.isLoved = false,
+//     this.isFavorited = false,
+//     List<Commenter>? commenters,
+//   }) : commenters = commenters ?? [];
+
+//   int get commentsCount => commenters.length;
+
+//   factory PostModel.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string' && rawImage != '')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return PostModel(
+//       id: json['id'] is int
+//           ? json['id']
+//           : int.tryParse(json['id'].toString()) ?? 0,
+//       profileImage: image,
+//       username: json['username'] ?? '',
+//       timeAgo: json['createdAt'] ?? '',
+//       postText: json['content'] ?? '',
+//       postImage: json['postImage'],
+//       likeCount: json['likeCount'] ?? 0,
+//       isLoved: json['isLoved'] ?? false,
+//       isFavorited: json['isFavorited'] ?? false,
+//       commenters: (json['comments'] as List<dynamic>?)
+//               ?.map((c) => Commenter.fromJson(c))
+//               .toList() ??
+//           [],
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'profileImageUrl': profileImage,
+//       'username': username,
+//       'createdAt': timeAgo,
+//       'content': postText,
+//       'postImage': postImage,
+//       'isFavorited': isFavorited,
+//     };
+//   }
+// }
+
+// class Liker {
+//   final int userId;
+//   final String username;
+//   final String? profileImageUrl;
+
+//   Liker({
+//     required this.userId,
+//     required this.username,
+//     this.profileImageUrl,
+//   });
+
+//   factory Liker.fromJson(Map<String, dynamic> json) {
+//     final raw = json['profileImageUrl'];
+//     final img = (raw != null && raw != 'string' && raw != '')
+//         ? 'https://myfirstapi.runasp.net$raw'
+//         : null;
+
+//     return Liker(
+//       userId: json['userId'],
+//       username: json['username'],
+//       profileImageUrl: img,
+//     );
+//   }
+// }
+
+// class Commenter {
+//   final String username;
+//   final String? profileImage;
+//   final String commentText;
+
+//   Commenter({
+//     required this.username,
+//     required this.profileImage,
+//     required this.commentText,
+//   });
+
+//   factory Commenter.fromJson(Map<String, dynamic> json) {
+//     final raw = json['profileImage'] ?? json['profileImageUrl'];
+//     final img = (raw != null && raw != 'string' && raw != '')
+//         ? 'https://myfirstapi.runasp.net$raw'
+//         : null;
+
+//     return Commenter(
+//       username: json['username'] ?? '',
+//       profileImage: img,
+//       commentText: json['commentText'] ?? json['text'] ?? '',
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'username': username,
+//       'profileImage': profileImage,
+//       'commentText': commentText,
+//     };
+//   }
+// }
+
+// class PostModel {
+//   final int id;
+//   final String username;
+//   final String timeAgo;
+//   final String postText;
+//   final String? postImage;
+
+//   final String? profileImage; // ممكن تكون null
+//   int likeCount;
+//   bool isLoved;
+//   bool isFavorited;
+
+//   List<Commenter> commenters;
+
+//   PostModel({
+//     required this.id,
+//     required this.username,
+//     required this.timeAgo,
+//     required this.postText,
+//     this.postImage,
+//     this.profileImage,
+//     this.likeCount = 0,
+//     this.isLoved = false,
+//     this.isFavorited = false,
+//     List<Commenter>? commenters,
+//   }) : commenters = commenters ?? [];
+
+//   int get commentsCount => commenters.length;
+
+//   factory PostModel.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return PostModel(
+//       id: json['id'] is int
+//           ? json['id']
+//           : int.tryParse(json['id'].toString()) ?? 0,
+//       username: json['username'] ?? '',
+//       timeAgo: json['createdAt'] ?? '',
+//       postText: json['content'] ?? '',
+//       postImage: json['imageUrl'], // أو 'postImage' حسب اسم الـ API
+//       profileImage: image,
+//       likeCount: json['likeCount'] ?? 0,
+//       isLoved: json['isLoved'] ?? false,
+//       isFavorited: json['isFavorited'] ?? false,
+//       commenters: (json['comments'] as List<dynamic>?)
+//               ?.map((e) => Commenter.fromJson(e))
+//               .toList() ??
+//           [],
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'username': username,
+//       'createdAt': timeAgo,
+//       'content': postText,
+//       'imageUrl': postImage,
+//       'profileImageUrl': profileImage,
+//       'likeCount': likeCount,
+//       'isLoved': isLoved,
+//       'isFavorited': isFavorited,
+//       'comments': commenters.map((e) => e.toJson()).toList(),
+//     };
+//   }
+// }
+
+// class Liker {
+//   final int userId;
+//   final String username;
+//   final String? profileImageUrl;
+
+//   Liker({
+//     required this.userId,
+//     required this.username,
+//     this.profileImageUrl,
+//   });
+
+//   factory Liker.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return Liker(
+//       userId: json['userId'] ?? 0,
+//       username: json['username'] ?? '',
+//       profileImageUrl: image,
+//     );
+//   }
+// }
+
+// class Commenter {
+//   final String username;
+//   final String? profileImage;
+//   final String commentText;
+
+//   Commenter({
+//     required this.username,
+//     this.profileImage,
+//     required this.commentText,
+//   });
+
+//   factory Commenter.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImage'] ?? json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return Commenter(
+//       username: json['username'] ?? '',
+//       profileImage: image,
+//       commentText: json['commentText'] ?? json['text'] ?? '',
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'username': username,
+//       'profileImage': profileImage,
+//       'commentText': commentText,
+//     };
+//   }
+// }
+//شغال ماعدا حذف
+
+// class PostModel {
+//   final int id;
+//   final String username;
+//   final String timeAgo;
+//   final String postText;
+//   final String? postImage;
+//   final String? profileImage;
+
+//   int likeCount;
+//   bool isLoved;
+//   bool isFavorited;
+//   List<Commenter> commenters;
+
+//   int? commentCount; // ✅ عدد التعليقات من API خارجي
+
+//   PostModel({
+//     required this.id,
+//     required this.username,
+//     required this.timeAgo,
+//     required this.postText,
+//     this.postImage,
+//     this.profileImage,
+//     this.likeCount = 0,
+//     this.isLoved = false,
+//     this.isFavorited = false,
+//     this.commentCount, // ✅ هنا ضفناها
+//     List<Commenter>? commenters,
+//   }) : commenters = commenters ?? [];
+
+//   int get commentsCount => commenters.length;
+
+//   factory PostModel.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return PostModel(
+//       id: json['id'] is int
+//           ? json['id']
+//           : int.tryParse(json['id'].toString()) ?? 0,
+//       username: json['username'] ?? '',
+//       timeAgo: json['createdAt'] ?? '',
+//       postText: json['content'] ?? '',
+//       postImage: json['imageUrl'],
+//       profileImage: image,
+//       likeCount: json['likeCount'] ?? 0,
+//       isLoved: json['isLoved'] ?? false,
+//       isFavorited: json['isFavorited'] ?? false,
+//       commenters: (json['comments'] as List<dynamic>?)
+//               ?.map((e) => Commenter.fromJson(e))
+//               .toList() ??
+//           [],
+//       // مفيش commentCount هنا لأنها بتيجي من API منفصل
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'id': id,
+//       'username': username,
+//       'createdAt': timeAgo,
+//       'content': postText,
+//       'imageUrl': postImage,
+//       'profileImageUrl': profileImage,
+//       'likeCount': likeCount,
+//       'isLoved': isLoved,
+//       'isFavorited': isFavorited,
+//       'comments': commenters.map((e) => e.toJson()).toList(),
+//       // مش هنضيف commentCount هنا كمان
+//     };
+//   }
+// }
+
+// class Liker {
+//   final int userId;
+//   final String username;
+//   final String? profileImageUrl;
+
+//   Liker({
+//     required this.userId,
+//     required this.username,
+//     this.profileImageUrl,
+//   });
+
+//   factory Liker.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return Liker(
+//       userId: json['userId'] ?? 0,
+//       username: json['username'] ?? '',
+//       profileImageUrl: image,
+//     );
+//   }
+// }
+
+// class Commenter {
+//   final String username;
+//   final String? profileImage;
+//   final String commentText;
+
+//   Commenter({
+//     required this.username,
+//     this.profileImage,
+//     required this.commentText,
+//   });
+
+//   factory Commenter.fromJson(Map<String, dynamic> json) {
+//     final rawImage = json['profileImage'] ?? json['profileImageUrl'];
+//     final image = (rawImage != null && rawImage != 'string')
+//         ? 'https://myfirstapi.runasp.net$rawImage'
+//         : null;
+
+//     return Commenter(
+//       username: json['username'] ?? '',
+//       profileImage: image,
+//       commentText: json['commentText'] ?? json['text'] ?? '',
+//     );
+//   }
+
+//   Map<String, dynamic> toJson() {
+//     return {
+//       'username': username,
+//       'profileImage': profileImage,
+//       'commentText': commentText,
+//     };
+//   }
+// }
+
+import 'package:get_storage/get_storage.dart';
 
 class PostModel {
-  final String id;
-  final String profileImage;
+  final int id;
   final String username;
   final String timeAgo;
   final String postText;
   final String? postImage;
-  List<UserModel> lovedUsers;
-  List<Commenter> commenters;
+  final String? profileImage;
+
+  int likeCount;
   bool isLoved;
   bool isFavorited;
+  bool isMine; // ✅ جديدة: هل البوست بتاع المستخدم الحالي؟
+  List<Commenter> commenters;
+  int? commentCount;
 
   PostModel({
     required this.id,
-    required this.profileImage,
     required this.username,
     required this.timeAgo,
     required this.postText,
     this.postImage,
-    List<UserModel>? lovedUsers,
-    List<Commenter>? commenters,
+    this.profileImage,
+    this.likeCount = 0,
     this.isLoved = false,
     this.isFavorited = false,
-  })  : lovedUsers = lovedUsers ?? [],
-        commenters = commenters ?? [];
+    this.commentCount,
+    List<Commenter>? commenters,
+    this.isMine = false, // ✅ القيمة الافتراضية false
+  }) : commenters = commenters ?? [];
 
-  int get loveCount => lovedUsers.length;
   int get commentsCount => commenters.length;
 
-  void toggleLove() {
-    if (isLoved) {
-      lovedUsers.remove(currentUser);
-    } else {
-      lovedUsers.add(currentUser);
-    }
-    isLoved = !isLoved;
+  // factory PostModel.fromJson(Map<String, dynamic> json) {
+  //   final rawImage = json['profileImageUrl'];
+  //   final image = (rawImage != null && rawImage != 'string')
+  //       ? 'https://myfirstapi.runasp.net$rawImage'
+  //       : null;
+
+  //   final userId = GetStorage().read('userId'); // 🧠 المستخدم الحالي
+  //   print(
+  //       "POST ID: ${json['id']} | userId from API: ${json['userId']} | userId from Storage: ${userId}");
+
+  //   return PostModel(
+  //     id: json['id'] is int
+  //         ? json['id']
+  //         : int.tryParse(json['id'].toString()) ?? 0,
+  //     username: json['username'] ?? '',
+  //     timeAgo: json['createdAt'] ?? '',
+  //     postText: json['content'] ?? '',
+  //     postImage: json['imageUrl'],
+  //     profileImage: image,
+  //     likeCount: json['likeCount'] ?? 0,
+  //     isLoved: json['isLoved'] ?? false,
+  //     isFavorited: json['isFavorited'] ?? false,
+  //     commenters: (json['comments'] as List<dynamic>?)
+  //             ?.map((e) => Commenter.fromJson(e))
+  //             .toList() ??
+  //         [],
+
+  //     isMine: json['userId']?.toString() == userId?.toString(),
+  //     // ✅ المقارنة
+  //   );
+  // }
+  factory PostModel.fromJson(Map<String, dynamic> json) {
+    final rawProfile = json['profileImageUrl'];
+    final profileImage = (rawProfile != null && rawProfile != 'string')
+        ? 'https://myfirstapi.runasp.net$rawProfile'
+        : null;
+
+    final rawPostImage = json['imageUrl'];
+    final postImageUrl = (rawPostImage != null && rawPostImage != 'string')
+        ? 'https://myfirstapi.runasp.net$rawPostImage'
+        : null;
+
+    final userId = GetStorage().read('userId');
+
+    print(
+        "POST ID: ${json['id']} | userId from API: ${json['userId']} | userId from Storage: $userId");
+
+    return PostModel(
+      id: json['id'] is int
+          ? json['id']
+          : int.tryParse(json['id'].toString()) ?? 0,
+      username: json['username'] ?? '',
+      timeAgo: json['createdAt'] ?? '',
+      postText: json['content'] ?? '',
+      postImage: postImageUrl,
+      profileImage: profileImage,
+      likeCount: json['likeCount'] ?? 0,
+      isLoved: json['isLoved'] ?? false,
+      isFavorited: json['isFavorited'] ?? false,
+      commenters: (json['comments'] as List<dynamic>?)
+              ?.map((e) => Commenter.fromJson(e))
+              .toList() ??
+          [],
+      isMine: json['userId']?.toString() == userId?.toString(),
+    );
   }
 
-  void addComment(String commentText, Commenter commenter) {
-    commenters.add(commenter);
-  }
-
-  void toggleFavorite() {
-    isFavorited = !isFavorited;
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'createdAt': timeAgo,
+      'content': postText,
+      'imageUrl': postImage,
+      'profileImageUrl': profileImage,
+      'likeCount': likeCount,
+      'isLoved': isLoved,
+      'isFavorited': isFavorited,
+      'comments': commenters.map((e) => e.toJson()).toList(),
+    };
   }
 }
 
-class UserModel {
-  String profileImage;
-  String username;
-  String email;
-  List<PostModel> favorites;
+class Liker {
+  final int userId;
+  final String username;
+  final String? profileImageUrl;
 
-  UserModel({
-    required this.profileImage,
+  Liker({
+    required this.userId,
     required this.username,
-    required this.email,
-    List<PostModel>? favorites,
-  }) : favorites = favorites ?? [];
+    this.profileImageUrl,
+  });
 
-  void toggleFavoritePost(PostModel post) {
-    if (favorites.contains(post)) {
-      favorites.remove(post);
-      post.isFavorited = false;
-    } else {
-      favorites.add(post);
-      post.isFavorited = true;
-    }
-  }
+  factory Liker.fromJson(Map<String, dynamic> json) {
+    final rawImage = json['profileImageUrl'];
+    final image = (rawImage != null && rawImage != 'string')
+        ? 'https://myfirstapi.runasp.net$rawImage'
+        : null;
 
-  void editProfile({
-    String? newUsername,
-    String? newEmail,
-    String? newProfileImage,
-  }) {
-    if (newUsername != null) username = newUsername;
-    if (newEmail != null) email = newEmail;
-    if (newProfileImage != null) profileImage = newProfileImage;
+    return Liker(
+      userId: json['userId'] ?? 0,
+      username: json['username'] ?? '',
+      profileImageUrl: image,
+    );
   }
 }
 
 class Commenter {
   final String username;
-  final String profileImage;
+  final String? profileImage;
   final String commentText;
 
   Commenter({
     required this.username,
-    required this.profileImage,
+    this.profileImage,
     required this.commentText,
   });
-}
 
-UserModel currentUser = UserModel(
-  profileImage: "images_TL/profileimage.png",
-  username: "Ross Ankunding",
-  email: "rossankunding@gmail.com",
-  favorites: [],
-);
+  factory Commenter.fromJson(Map<String, dynamic> json) {
+    final rawImage = json['profileImage'] ?? json['profileImageUrl'];
+    final image = (rawImage != null && rawImage != 'string')
+        ? 'https://myfirstapi.runasp.net$rawImage'
+        : null;
 
-UserModel user1 = UserModel(
-  profileImage: "images_TL/profile3.jpg",
-  username: "Ahmed Ali",
-  email: "ahmedali@example.com",
-);
+    return Commenter(
+      username: json['username'] ?? '',
+      profileImage: image,
+      commentText: json['commentText'] ?? json['text'] ?? '',
+    );
+  }
 
-UserModel user2 = UserModel(
-  profileImage: "images_TL/profile2.png",
-  username: "Sara Ahmed",
-  email: "saraahmed@example.com",
-);
-
-List<PostModel> dummyPosts = [
-  PostModel(
-    id: 'post_001',
-    profileImage: "images_TL/profile3.jpg",
-    username: "John Doe",
-    timeAgo: "20min",
-    postText:
-        "Lorem Ipsum is simply dummy text of the printing and typesetting industry.",
-    postImage: "images_TL/post1.png",
-    lovedUsers: [user1, user2],
-    commenters: [
-      Commenter(
-        username: "Ahmed Ali",
-        profileImage: "images_TL/profile3.jpg",
-        commentText: "Nice post!",
-      ),
-      Commenter(
-        username: "Sara Ahmed",
-        profileImage: "images_TL/profile2.png",
-        commentText: "Great work!",
-      ),
-    ],
-  ),
-  PostModel(
-    id: 'post_002',
-    profileImage: "",
-    username: "Mostfa",
-    timeAgo: "5h",
-    postText: "Lorem Ipsum has been the industry's standard dummy text.",
-    postImage: "images_TL/post2.png",
-    lovedUsers: [user1, user2],
-    commenters: [
-      Commenter(
-        username: "John Doe",
-        profileImage: "images_TL/profile3.jpg",
-        commentText: "Looking good!",
-      ),
-      Commenter(
-        username: "Sara Ahmed",
-        profileImage: "images_TL/profile2.png",
-        commentText: "Nice view!",
-      ),
-    ],
-  ),
-  PostModel(
-    id: 'post_003', // id ثابت
-    profileImage: "images_TL/profile2.png",
-    username: "Sara Ahmed",
-    timeAgo: "18h",
-    postText: "It's been an amazing day, here's a glimpse!",
-    postImage: "images_TL/post2.png",
-    lovedUsers: [user2, user1],
-    commenters: [
-      Commenter(
-        username: "John Doe",
-        profileImage: "images_TL/profile2.png",
-        commentText: "Wow, stunning!",
-      ),
-      Commenter(
-        username: "Ahmed Ali",
-        profileImage: "images_TL/profile3.jpg",
-        commentText: "So beautiful!",
-      ),
-    ],
-  ),
-];
-
-void addNewPost(String postText, File? image) {
-  final newPost = PostModel(
-    id: 'post_${dummyPosts.length + 1}', // تعيين id جديد للبوست
-    profileImage: currentUser.profileImage,
-    username: currentUser.username,
-    timeAgo: "just now",
-    postText: postText,
-    postImage: image != null ? image.path : null,
-    lovedUsers: [],
-    commenters: [],
-  );
-  dummyPosts.insert(0, newPost);
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'profileImage': profileImage,
+      'commentText': commentText,
+    };
+  }
 }

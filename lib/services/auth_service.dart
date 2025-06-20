@@ -17,6 +17,7 @@ class AuthService {
 
   final box = GetStorage();
 
+  /// تسجيل الدخول
   Future<bool> login(String email, String password) async {
     try {
       final response = await dio.post(
@@ -27,19 +28,31 @@ class AuthService {
         }),
       );
 
+      print("📩 Login response: ${response.data}");
+
       if (response.statusCode == 200 && response.data['token'] != null) {
         box.write('token', response.data['token']);
+
+        // ✅ حفظ userId من المفتاح الصحيح "id"
+        if (response.data.containsKey('id')) {
+          box.write('userId', response.data['id']);
+          print("✅ userId saved: ${response.data['id']}");
+        } else {
+          print("❗ userId (id) not found in login response");
+        }
+
         return true;
       } else {
-        print("Login failed: ${response.data}");
+        print("❌ Login failed: ${response.data}");
         return false;
       }
     } catch (e) {
-      print("Login error: $e");
+      print("❌ Login error: $e");
       return false;
     }
   }
 
+  /// إنشاء حساب جديد
   Future<bool> register(String name, String email, String password) async {
     try {
       final response = await dio.post(
@@ -58,6 +71,7 @@ class AuthService {
     }
   }
 
+  /// تغيير كلمة المرور
   Future<bool> changePassword({
     required String currentPassword,
     required String newPassword,
@@ -86,6 +100,7 @@ class AuthService {
     }
   }
 
+  /// حذف الحساب
   Future<bool> deleteAccount() async {
     final token = box.read('token');
     if (token == null) return false;
@@ -101,7 +116,7 @@ class AuthService {
       );
 
       if (response.statusCode == 200) {
-        logout(); // حذف التوكن والبيانات عند نجاح الحذف
+        logout();
         return true;
       } else {
         print("Delete account failed: ${response.data}");
@@ -113,19 +128,28 @@ class AuthService {
     }
   }
 
+  /// تسجيل الخروج
   void logout() {
     box.remove('token');
-    box.remove('user');
+    box.remove('userId');
   }
 
+  /// التحقق من تسجيل الدخول
   bool isLoggedIn() {
     return box.read('token') != null;
   }
 
+  /// جلب التوكن
   String? getToken() {
     return box.read('token');
   }
 
+  /// جلب userId
+  int? getUserId() {
+    return box.read('userId');
+  }
+
+  /// جلب بيانات المستخدم الحالي
   Future<Map<String, dynamic>?> getProfile() async {
     final token = box.read('token');
     if (token == null) return null;
@@ -140,18 +164,14 @@ class AuthService {
         ),
       );
 
-      if (response.statusCode == 200) {
-        return response.data;
-      } else {
-        print("Get profile failed: ${response.data}");
-        return null;
-      }
+      return response.statusCode == 200 ? response.data : null;
     } catch (e) {
       print("Get profile error: $e");
       return null;
     }
   }
 
+  /// تعديل بيانات البروفايل
   Future<bool> updateProfile({
     required String username,
     required String email,
@@ -182,6 +202,7 @@ class AuthService {
     }
   }
 
+  /// رفع صورة البروفايل
   Future<bool> uploadProfileImage(File imageFile) async {
     final token = box.read('token');
     if (token == null) return false;

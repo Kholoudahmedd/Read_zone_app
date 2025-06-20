@@ -41,8 +41,8 @@ class BookSection extends StatelessWidget {
                     // تكرار القائمة على الأقل 15 مرة
                     repeatedBooks.addAll(bookList);
                   }
-                  repeatedBooks =
-                      repeatedBooks.sublist(0, 15); // التأكد أن العدد 15 فقط
+                  // repeatedBooks =
+                  //   repeatedBooks.sublist(0, 15); // التأكد أن العدد 15 فقط
                   //من هنا هيتحذف لما api
                   Navigator.push(
                     context,

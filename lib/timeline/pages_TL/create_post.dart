@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:read_zone_app/themes/colors.dart';
-import '../model_TL/model_post.dart';
+import '../model_TL/api_service.dart';
 
 class CreatePostPage extends StatefulWidget {
   final File? selectedImage;
@@ -43,11 +43,21 @@ class _CreatePostPageState extends State<CreatePostPage> {
     }
   }
 
-  void createPost() {
+  void createPost() async {
     String postText = _postController.text;
+
     if (canPost) {
-      addNewPost(postText, _selectedImage); // تأكد أن هذه الدالة موجودة في model_post.dart
-      Navigator.pop(context, true);
+      bool success = await ApiService.createPost(
+          content: postText, imageFile: _selectedImage);
+      if (success) {
+        // لو الرفع ناجح رجع للصفحة السابقة
+        Navigator.pop(context, true);
+      } else {
+        // لو في خطأ ممكن تظهر رسالة خطأ
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل رفع المنشور. حاول مرة أخرى')),
+        );
+      }
     }
   }
 

@@ -1,42 +1,41 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/book_model.dart';
 
 class BookService {
-  static final List<Book> _mockBooks = [
-    Book(
-      id: "1",
-      title: "Book of Night",
-      author: "Holly Black",
-      price: 200,
-      imagepath: "images/image3.png",
-      description:
-          "The Catcher in the Rye is a novel by J. D. Salinger, partially published in serial form in 1945–1946 and as a novel in 1951. It was originally intended for adu lts but is often read by adolescents for its theme of angst, alienation and as a critique......",
-    ),
-    Book(
-      id: "2",
-      title: "Book of Night",
-      author: "Holly Black",
-      price: 200,
-      imagepath: "images/image4.png",
-      description:
-          "The Catcher in the Rye is a novel by J. D. Salinger, partially published in serial form in 1945–1946 and as a novel in 1951. It was originally intended for adu lts but is often read by adolescents for its theme of angst, alienation and as a critique......",
-    ),
-    Book(
-      id: "2",
-      title: "Book of Night",
-      author: "Holly Black",
-      price: 200,
-      imagepath: "images/image5.png",
-      description:
-          "The Catcher in the Rye is a novel by J. D. Salinger, partially published in serial form in 1945–1946 and as a novel in 1951. It was originally intended for adu lts but is often read by adolescents for its theme of angst, alienation and as a critique......",
-    ),
-  ];
+  final String baseUrl = 'https://myfirstapi.runasp.net/api/Store';
 
-  Future<List<Book>> fetchBooks() async {
-    await Future.delayed(
-      Duration(seconds: 2),
-      
-    );
+  Future<List<Book>> fetchTopSellers() async {
+    return _fetchBooks('$baseUrl/topsellers');
+  }
 
-    return _mockBooks;
+  Future<List<Book>> fetchNewArrivals() async {
+    return _fetchBooks('$baseUrl/newarrivals');
+  }
+
+  Future<List<Book>> fetchSpecialOffers() async {
+    return _fetchBooks('$baseUrl/specialoffers');
+  }
+
+  Future<Book> fetchBookById(int id) async {
+    final response = await http.get(Uri.parse('$baseUrl/book/$id'));
+
+    if (response.statusCode == 200) {
+      final jsonData = json.decode(response.body);
+      return Book.fromJson(jsonData);
+    } else {
+      throw Exception('Failed to load book');
+    }
+  }
+
+  Future<List<Book>> _fetchBooks(String url) async {
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = json.decode(response.body);
+      return jsonList.map((json) => Book.fromJson(json)).toList();
+    } else {
+      throw Exception('Failed to load books from $url');
+    }
   }
 }

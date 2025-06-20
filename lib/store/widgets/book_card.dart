@@ -12,7 +12,9 @@ class BookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color frameColor = index.isEven ? getRedColor(context) : getGreenColor(context);
+    Color frameColor =
+        index.isEven ? getRedColor(context) : getGreenColor(context);
+    print(book.coverImageUrl);
 
     return Stack(
       clipBehavior: Clip.none,
@@ -39,6 +41,14 @@ class BookCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 80), // يترك مساحة للصورة فوق الإطار
+              // Text(
+              //   book.title,
+              //   style: TextStyle(
+              //     fontSize: 16,
+              //     fontWeight: FontWeight.bold,
+              //   ),
+              //   textAlign: TextAlign.center,
+              // ),
               Text(
                 book.title,
                 style: TextStyle(
@@ -46,35 +56,63 @@ class BookCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 1, // سطر واحد بس
+                overflow: TextOverflow.ellipsis, // ... لو طويل
               ),
 
-              //  السعر واسم الكاتب
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '\$${book.price.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
+              // //  السعر واسم الكاتب
+              // FittedBox(
+              //   fit: BoxFit.scaleDown,
+              //   child: Row(
+              //     mainAxisAlignment: MainAxisAlignment.center,
+              //     children: [
+              //       Text(
+              //         '\$${book.price.toStringAsFixed(2)}',
+              //         style: TextStyle(
+              //           fontSize: 14,
+              //           fontWeight: FontWeight.bold,
+              //         ),
+              //       ),
+              //       const SizedBox(width: 5),
+              //       Text(
+              //         book.author,
+              //         style: TextStyle(
+              //           fontSize: 12,
+              //           color: getGreyColor(context),
+              //           fontWeight: FontWeight.bold,
+              //         ),
+              //         overflow: TextOverflow.ellipsis, // يخنصر اسم لو طويل ب...
+              //         maxLines: 1, // يمنع كسر الاسم إلى سطر جديد
+              //         softWrap: false, //  يمنع أي كسر تلقائي للنص
+              //       ),
+              //     ],
+              //   ),
+              // ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '\$${book.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
                     ),
-                    const SizedBox(width: 5),
-                    Text(
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    // علشان ياخد المساحة المتاحة جوه Row
+                    child: Text(
                       book.author,
                       style: TextStyle(
                         fontSize: 12,
                         color: getGreyColor(context),
                         fontWeight: FontWeight.bold,
                       ),
-                      overflow: TextOverflow.ellipsis, // يخنصر اسم لو طويل ب...
-                      maxLines: 1, // يمنع كسر الاسم إلى سطر جديد
-                      softWrap: false, //  يمنع أي كسر تلقائي للنص
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 12),
@@ -91,11 +129,32 @@ class BookCard extends StatelessWidget {
             alignment: Alignment.center,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                book.imagepath,
+              // child: Image.asset(
+              //   book.imagepath,
+              //   width: 100,
+              //   height: 140,
+              //   fit: BoxFit.cover,
+              // ),
+
+              // child: Image.network(
+              //   book.coverImageUrl,
+              //   width: 100,
+              //   height: 140,
+              //   fit: BoxFit.cover,
+              //   errorBuilder: (context, error, stackTrace) =>
+              //       Icon(Icons.broken_image), // لو في خطأ في الصورة
+              // ),
+              child: Image.network(
+                book.coverImageUrl,
                 width: 100,
                 height: 140,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(child: CircularProgressIndicator());
+                },
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(Icons.broken_image, size: 100),
               ),
             ),
           ),
