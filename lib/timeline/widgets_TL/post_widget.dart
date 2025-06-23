@@ -7,11 +7,12 @@ import '../icons_TL/love_icon.dart';
 import '../pages_TL/comment_page.dart';
 import '../model_TL/api_service.dart';
 import '../pages_TL/love_page.dart';
+import '../widgets_TL/time.dart';
 
 class PostWidget extends StatefulWidget {
   final PostModel post;
   final VoidCallback onDelete;
-  final ValueChanged<bool>? onFavoriteChanged; // 🔴 جديد
+  final ValueChanged<bool>? onFavoriteChanged; // جديد
 
   const PostWidget({
     Key? key,
@@ -43,7 +44,7 @@ class _PostWidgetState extends State<PostWidget> {
         likeCount = count;
       });
     } catch (e) {
-      print('❌ Error loading like count: $e');
+      print(' Error loading like count: $e');
     }
   }
 
@@ -54,7 +55,7 @@ class _PostWidgetState extends State<PostWidget> {
         post.commentCount = count;
       });
     } catch (e) {
-      print('❌ Error loading comment count: $e');
+      print(' Error loading comment count: $e');
     }
   }
 
@@ -73,19 +74,39 @@ class _PostWidgetState extends State<PostWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🟢 عنوان البوست
+            //  عنوان البوست
             Row(
               children: [
+                //هنا هتغير صورة
                 CircleAvatar(
-                  backgroundImage: post.profileImage != null
-                      ? NetworkImage(post.profileImage!)
-                      : null,
-                  radius: 25,
+                  radius: 20,
                   backgroundColor: Colors.grey.shade300,
-                  child: post.profileImage == null
-                      ? Icon(Icons.person, color: Colors.white)
-                      : null,
+                  child: ClipOval(
+                    child: post.profileImage != null &&
+                            post.profileImage!.startsWith('http')
+                        ? Image.network(
+                            post.profileImage!,
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Image.asset(
+                                'assets/images/test.jpg',
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                              );
+                            },
+                          )
+                        : Image.asset(
+                            'assets/images/test.jpg',
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                  ),
                 ),
+
                 SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,10 +121,15 @@ class _PostWidgetState extends State<PostWidget> {
                     ),
                     Row(
                       children: [
+                        // Text(
+                        //   post.timeAgo,
+                        //   style: TextStyle(color: getTextColor(context)),
+                        // ),
                         Text(
-                          post.timeAgo,
+                          formatTime(DateTime.parse(post.timeAgo)),
                           style: TextStyle(color: getTextColor(context)),
                         ),
+
                         SizedBox(width: 5),
                         Icon(Icons.public,
                             size: 16, color: getTextColor(context)),
@@ -113,7 +139,7 @@ class _PostWidgetState extends State<PostWidget> {
                 ),
                 Spacer(),
 
-                // ✅ زر الحذف يظهر فقط إذا كان البوست خاص بالمستخدم الحالي
+                // زر الحذف يظهر فقط إذا كان البوست خاص بالمستخدم الحالي
                 post.isMine
                     ? IconButton(
                         icon: Icon(Icons.close, color: Colors.grey),
@@ -126,12 +152,16 @@ class _PostWidgetState extends State<PostWidget> {
                                   "Are you sure you want to delete this post?"),
                               actions: [
                                 TextButton(
-                                  child: Text("Cancel"),
+                                  child: Text("Cancel",
+                                      style: TextStyle(
+                                          color: getRedColor(context))),
                                   onPressed: () =>
                                       Navigator.pop(context, false),
                                 ),
                                 TextButton(
-                                  child: Text("Delete"),
+                                  child: Text("Delete",
+                                      style: TextStyle(
+                                          color: getRedColor(context))),
                                   onPressed: () => Navigator.pop(context, true),
                                 ),
                               ],
@@ -146,8 +176,7 @@ class _PostWidgetState extends State<PostWidget> {
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                    content: Text(
-                                        "Failed to delete post from server")),
+                                    content: Text("Failed to delete post ")),
                               );
                             }
                           }
@@ -163,7 +192,6 @@ class _PostWidgetState extends State<PostWidget> {
                 post.postText,
                 style: TextStyle(fontSize: 16, color: textColor),
               ),
-
             if (post.postImage != null)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
@@ -173,13 +201,29 @@ class _PostWidgetState extends State<PostWidget> {
                     post.postImage!,
                     fit: BoxFit.cover,
                     width: MediaQuery.of(context).size.width,
+                    // <-- نضيف loadingBuilder هنا
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 200,
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        child: CircularProgressIndicator(
+                          color: getRedColor(context),
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
                     errorBuilder: (context, error, stackTrace) =>
                         Icon(Icons.broken_image),
                   ),
                 ),
               ),
 
-            // 🟢 صف التفاعل
+            //  صف التفاعل
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

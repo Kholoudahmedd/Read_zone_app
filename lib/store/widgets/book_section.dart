@@ -72,7 +72,10 @@ class BookSection extends StatelessWidget {
             future: books,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
+                return Center(
+                    child: CircularProgressIndicator(
+                  color: getRedColor(context),
+                ));
               } else if (snapshot.hasError) {
                 return Center(
                     child: Text("An error occurred while loading books"));

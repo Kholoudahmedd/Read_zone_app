@@ -156,22 +156,33 @@ class _ReviewsState extends State<Reviews> {
                         child: Column(
                           children: [
                             SizedBox(height: 50),
-                            Text(
-                              widget.title,
-                              style: GoogleFonts.inter(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: getRedColor(context),
+                            SizedBox(
+                              width: 380,
+                              child: Text(
+                                widget.title,
+                                style: GoogleFonts.inter(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: getRedColor(context),
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
-                              textAlign: TextAlign.center,
-                              overflow: TextOverflow.fade,
-                              maxLines: 2,
                             ),
-                            Text(widget.author,
+                            SizedBox(
+                              width: 370,
+                              child: Text(
+                                widget.author,
                                 style: GoogleFonts.inter(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: getRedColor(context))),
+                                    color: getRedColor(context)),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
                             SizedBox(height: 20),
                             Padding(
                               padding: const EdgeInsets.all(15.0),
@@ -254,7 +265,6 @@ class _ReviewsState extends State<Reviews> {
                         ),
                       ),
                     ),
-
                     Positioned(
                       bottom: 20,
                       left: 20,

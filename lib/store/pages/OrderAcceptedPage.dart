@@ -40,20 +40,6 @@ class OrderAcceptedPage extends StatelessWidget {
               ),
             ),
             SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: () {
-                // تنفيذ تتبع الطلب
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: getRedColor(context),
-                padding: EdgeInsets.symmetric(horizontal: 80, vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(150),
-                ),
-              ),
-              child: Text("Track Order",
-                  style: TextStyle(fontSize: 16, color: Colors.black)),
-            ),
             TextButton(
               onPressed: () {
                 Get.to(Homepage(),

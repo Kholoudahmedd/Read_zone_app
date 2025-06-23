@@ -116,7 +116,12 @@ class _LovePageState extends State<LovePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('People Who Loved This Post')),
+      appBar: AppBar(
+        title: Text('People Who Loved This Post'),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       body: FutureBuilder<List<Liker>>(
         future: _likersFuture,
         builder: (context, snapshot) {
@@ -147,14 +152,30 @@ class _LovePageState extends State<LovePage> {
                         CircleAvatar(
                           radius: 30,
                           backgroundColor: Colors.grey.shade300,
-                          backgroundImage: user.profileImageUrl != null
-                              ? NetworkImage(user.profileImageUrl!)
-                              : AssetImage('assets/images/test.jpg')
-                                  as ImageProvider,
-                          // child: user.profileImageUrl == null
-                          //     ? Icon(Icons.person,
-                          //         size: 30, color: Colors.white)
-                          //     : null,
+                          child: ClipOval(
+                            child: user.profileImageUrl != null &&
+                                    user.profileImageUrl!.startsWith('http')
+                                ? Image.network(
+                                    user.profileImageUrl!,
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Image.asset(
+                                        'assets/images/test.jpg',
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                      );
+                                    },
+                                  )
+                                : Image.asset(
+                                    'assets/images/test.jpg',
+                                    width: 50,
+                                    height: 50,
+                                    fit: BoxFit.cover,
+                                  ),
+                          ),
                         ),
                         Positioned(
                           bottom: -3,

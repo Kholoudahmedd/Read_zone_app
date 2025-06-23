@@ -407,9 +407,10 @@
 //   }
 // }
 import 'package:flutter/material.dart';
-import 'package:read_zone_app/store/pages/checkout_sheet.dart';
 import 'package:read_zone_app/themes/colors.dart';
+
 import '../models/book_model.dart';
+import '../pages/purchash_book.dart';
 
 class BookDetailPage extends StatefulWidget {
   final Book book;
@@ -481,9 +482,16 @@ class _BookDetailPageState extends State<BookDetailPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.book.title,
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.6,
+                          child: Text(
+                            widget.book.title,
                             style: const TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.bold)),
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
                         Text(widget.book.author,
                             style: TextStyle(
                                 fontSize: 14, color: getTextColor2(context))),
@@ -512,27 +520,27 @@ class _BookDetailPageState extends State<BookDetailPage> {
                   children: [
                     Row(
                       children: [
-                        IconButton(
-                          icon:
-                              Icon(Icons.remove, color: getTextColor2(context)),
-                          onPressed: () {
-                            if (quantity > 1) {
-                              setState(() {
-                                quantity--;
-                              });
-                            }
-                          },
-                        ),
-                        Text(quantity.toString(),
-                            style: const TextStyle(fontSize: 18)),
-                        IconButton(
-                          icon: Icon(Icons.add, color: getRedColor(context)),
-                          onPressed: () {
-                            setState(() {
-                              quantity++;
-                            });
-                          },
-                        ),
+                        // IconButton(
+                        //   icon:
+                        //       Icon(Icons.remove, color: getTextColor2(context)),
+                        //   onPressed: () {
+                        //     if (quantity > 1) {
+                        //       setState(() {
+                        //         quantity--;
+                        //       });
+                        //     }
+                        //   },
+                        // ),
+                        // Text(quantity.toString(),
+                        //     style: const TextStyle(fontSize: 18)),
+                        // IconButton(
+                        //   icon: Icon(Icons.add, color: getRedColor(context)),
+                        //   onPressed: () {
+                        //     setState(() {
+                        //       quantity++;
+                        //     });
+                        //   },
+                        // ),
                       ],
                     ),
                     Text("\$${widget.book.price.toStringAsFixed(2)}",
@@ -581,19 +589,30 @@ class _BookDetailPageState extends State<BookDetailPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
+                      // onPressed: () {
+                      //   showModalBottomSheet(
+                      //     context: context,
+                      //     shape: const RoundedRectangleBorder(
+                      //       borderRadius:
+                      //           BorderRadius.vertical(top: Radius.circular(30)),
+                      //     ),
+                      //     isScrollControlled: true,
+                      //     builder: (context) =>
+                      //         CheckoutBottomSheet(price: widget.book.price),
+                      //   );
+                      // },
                       onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.vertical(top: Radius.circular(30)),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PurchaseBookScreen(
+                              book: widget.book,
+                            ),
                           ),
-                          isScrollControlled: true,
-                          builder: (context) =>
-                              CheckoutBottomSheet(price: widget.book.price),
                         );
                       },
-                      child: Text("Go to Checkout",
+
+                      child: Text("Order Book",
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,

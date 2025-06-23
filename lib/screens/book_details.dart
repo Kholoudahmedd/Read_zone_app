@@ -23,7 +23,7 @@ class _BookDetailsState extends State<BookDetails> {
   bool _isLoadingFavorite = false;
   bool _isLoadingBookmark = false;
   // bool _isLoadingDownload = false;
-  bool isDarkMode = false;
+  bool isDarkMode = true;
   final Dio dio = Dio();
   final box = GetStorage();
 

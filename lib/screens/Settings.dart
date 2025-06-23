@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:read_zone_app/services/auth_service.dart';
 import 'package:read_zone_app/themes/colors.dart';
 import 'package:read_zone_app/timeline/pages_TL/edit_profile.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,6 +41,9 @@ class _SettingsState extends State<Settings> {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
+    final Dio _dio = Dio();
+    final box = GetStorage();
+    final String baseUrl = 'https://myfirstapi.runasp.net/api';
 
     final confirm = await Get.dialog(
       Dialog(
@@ -110,26 +114,67 @@ class _SettingsState extends State<Settings> {
         return;
       }
 
-      final success = await AuthService().changePassword(
-        currentPassword: currentPassword,
-        newPassword: newPassword,
-      );
+      final token = box.read('token');
+      if (token == null) {
+        Get.snackbar('Error', 'User not authenticated.');
+        return;
+      }
 
-      if (success) {
-        Get.snackbar('Success', 'Password changed successfully.');
-      } else {
-        Get.snackbar('Error', 'Failed to change password.');
+      try {
+        final response = await _dio.put(
+          '$baseUrl/Auth/change-password',
+          data: {
+            'currentPassword': currentPassword,
+            'newPassword': newPassword,
+          },
+          options: Options(
+            headers: {
+              'Authorization': 'Bearer $token',
+            },
+          ),
+        );
+
+        if (response.statusCode == 200) {
+          Get.snackbar('Success', 'Password changed successfully.');
+        } else {
+          Get.snackbar('Error', 'Failed to change password.');
+        }
+      } catch (e) {
+        if (e is DioException && e.response != null) {
+          Get.snackbar('Error', e.response?.data.toString() ?? 'Unknown error');
+        } else {
+          Get.snackbar('Error', 'Something went wrong.');
+        }
       }
     }
   }
 
   Future<void> deleteUserAccount() async {
-    final success = await AuthService().deleteAccount();
-    if (success) {
-      Get.snackbar('Deleted', 'Account deleted successfully.');
-      Get.offAllNamed('/login');
-    } else {
-      Get.snackbar('Error', 'Failed to delete account.');
+    final Dio _dio = Dio();
+    final box = GetStorage();
+    final String baseUrl = 'https://myfirstapi.runasp.net/api';
+    final token = box.read('token');
+
+    if (token == null) {
+      Get.snackbar('Error', 'User not authenticated.');
+      return;
+    }
+
+    try {
+      final response = await _dio.delete(
+        '$baseUrl/Auth/delete-account',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        Get.snackbar('Deleted', 'Account deleted successfully.');
+        box.erase(); // مسح بيانات المستخدم
+        Get.offAllNamed('/login');
+      } else {
+        Get.snackbar('Error', 'Failed to delete account.');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Something went wrong.');
     }
   }
 
@@ -166,13 +211,11 @@ class _SettingsState extends State<Settings> {
               ),
               SizedBox(height: 40),
               _buildSettingOption(context,
-                  icon: Icons.edit,
-                  text: ' Edit Profile',
-                  onTap: () {
-                    Get.to(() => EditProfilePage(),
-                        transition: Transition.fade,
-                        duration: Duration(milliseconds: 300));
-                  }),
+                  icon: Icons.edit, text: ' Edit Profile', onTap: () {
+                Get.to(() => EditProfilePage(),
+                    transition: Transition.fade,
+                    duration: Duration(milliseconds: 300));
+              }),
               SizedBox(height: 20),
               _buildSettingOption(context,
                   icon: Icons.lock_outline,
@@ -185,12 +228,12 @@ class _SettingsState extends State<Settings> {
                   switchValue: _isDarkMode,
                   onSwitchChanged: _toggleTheme),
               SizedBox(height: 20),
-              _buildSettingOption(context,
-                  icon: Icons.notifications_active,
-                  text: ' Notifications',
-                  switchValue: false,
-                  onSwitchChanged: (value) {}),
-              SizedBox(height: 50),
+              // _buildSettingOption(context,
+              //     icon: Icons.notifications_active,
+              //     text: ' Notifications',
+              //     switchValue: false,
+              //     onSwitchChanged: (value) {}),
+              // SizedBox(height: 50),
               ElevatedButton(
                 onPressed: () async {
                   final confirmDelete = await Get.dialog(

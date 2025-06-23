@@ -64,12 +64,18 @@ class _RatingAndReviewsEmptyState extends State<RatingAndReviewsEmpty> {
                     ),
                   ),
                 ),
-                Text(
-                  widget.author,
-                  style: GoogleFonts.inter(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: getRedColor(context),
+                SizedBox(
+                  width: 370,
+                  child: Text(
+                    widget.author,
+                    style: GoogleFonts.inter(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: getRedColor(context),
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                   ),
                 ),
                 SizedBox(height: 50),

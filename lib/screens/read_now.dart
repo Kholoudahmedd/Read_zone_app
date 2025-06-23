@@ -157,7 +157,7 @@ class _ReadNowState extends State<ReadNow> {
           fontSize: 18,
           height: 1.2,
         ),
-        textAlign: TextAlign.justify,
+        textAlign: TextAlign.center,
       ),
     );
   }

@@ -17,7 +17,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   File? _selectedImage;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
 
   String? currentImageUrl = '';
   final Dio _dio = Dio();
@@ -82,7 +81,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      return response.data['Image']; // لاحظ أن الباكند يرجع المفتاح "Image"
+      return response.data['imageUrl']; // ✅ القيمة الصحيحة من الباك اند
     } catch (e) {
       print('Error uploading image: $e');
       return null;
@@ -94,38 +93,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
     if (token == null) return;
 
     try {
-      String? uploadedImageUrl = currentImageUrl;
-
       if (_selectedImage != null) {
         final imageUrl = await _uploadImage(_selectedImage!);
         if (imageUrl != null && imageUrl.isNotEmpty) {
-          uploadedImageUrl = imageUrl;
+          setState(() {
+            currentImageUrl = imageUrl;
+          });
         }
-      }
-
-      final Map<String, dynamic> updateData = {
-        "username": _usernameController.text,
-        "email": _emailController.text,
-      };
-
-      if (_passwordController.text.isNotEmpty) {
-        updateData["password"] = _passwordController.text;
-      }
-
-      if (uploadedImageUrl != null && uploadedImageUrl.isNotEmpty) {
-        updateData["profileImage"] = uploadedImageUrl;
       }
 
       final response = await _dio.put(
         '$baseUrl/Auth/update-username',
-        data: updateData,
+        data: {
+          "username": _usernameController.text.trim(),
+        },
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
+
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Profile updated successfully')),
         );
-        Navigator.pop(context, true); // ✅ رجع true عند نجاح التحديث
+        Navigator.pop(context, true);
       } else {
         throw Exception('Update failed with status: ${response.statusCode}');
       }
@@ -203,8 +192,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 children: [
                   buildInputField("Username", _usernameController),
                   buildInputField("Email", _emailController, readOnly: true),
-                  // إذا أردت تفعيل تعديل كلمة السر أزل التعليق من السطر التالي:
-                  // buildInputField("Password", _passwordController, isPassword: true),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _updateProfile,

@@ -72,7 +72,10 @@ class _DescriptionPageState extends State<DescriptionPage> {
         automaticallyImplyLeading: false,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: CircularProgressIndicator(
+              color: getRedColor(context),
+            ))
           : SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
@@ -118,6 +121,9 @@ class _DescriptionPageState extends State<DescriptionPage> {
               fontWeight: FontWeight.bold,
               color: color,
             ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
         ],
       ),
@@ -159,7 +165,6 @@ class _DescriptionPageState extends State<DescriptionPage> {
             color: getTextColor2(context),
             fontWeight: FontWeight.bold,
             fontSize: 16,
-
           ),
         ),
       ],

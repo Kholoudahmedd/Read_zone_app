@@ -20,6 +20,9 @@ class _CommentPageState extends State<CommentPage> {
   List<Commenter> comments = [];
   String? currentUserImage;
 
+  bool isLoadingComments = true;
+  bool isSendingComment = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,7 +31,6 @@ class _CommentPageState extends State<CommentPage> {
   }
 
   Future<void> _loadCurrentUserImage() async {
-    // استرجاع رابط صورة المستخدم الحالي من التخزين
     final image = GetStorage().read('profileImage');
     if (image != null && image != 'string') {
       setState(() {
@@ -38,15 +40,23 @@ class _CommentPageState extends State<CommentPage> {
   }
 
   Future<void> _fetchComments() async {
+    setState(() {
+      isLoadingComments = true;
+    });
     final fetchedComments = await ApiService.getComments(widget.post.id);
     setState(() {
       comments = fetchedComments;
+      isLoadingComments = false;
     });
   }
 
   Future<void> _addComment() async {
     final text = _commentController.text.trim();
     if (text.isEmpty) return;
+
+    setState(() {
+      isSendingComment = true;
+    });
 
     final success = await ApiService.addComment(
       postId: widget.post.id,
@@ -57,6 +67,10 @@ class _CommentPageState extends State<CommentPage> {
       _commentController.clear();
       await _fetchComments();
     }
+
+    setState(() {
+      isSendingComment = false;
+    });
   }
 
   void _toggleEmojiPicker() {
@@ -89,78 +103,94 @@ class _CommentPageState extends State<CommentPage> {
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
-              // عرض التعليقات
               Expanded(
-                child: ListView.builder(
-                  itemCount: comments.length,
-                  itemBuilder: (context, index) {
-                    final commenter = comments[index];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundImage: commenter.profileImage != null
-                                ? NetworkImage(commenter.profileImage!)
-                                : null,
-                            radius: 20,
-                            backgroundColor: Colors.grey.shade300,
-                            child: commenter.profileImage == null
-                                ? Icon(Icons.person, color: Colors.white)
-                                : null,
-                          ),
-                          SizedBox(width: 10),
-                          Container(
-                            padding: EdgeInsets.all(12),
-                            constraints: BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context).size.width * 0.75,
-                            ),
-                            decoration: BoxDecoration(
-                              color: getRedColor(context),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  commenter.username,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
+                child: isLoadingComments
+                    ? Center(
+                        child: CircularProgressIndicator(
+                        color: getRedColor(context),
+                      ))
+                    : comments.isEmpty
+                        ? Text("No comments yet.")
+                        : ListView.builder(
+                            itemCount: comments.length,
+                            itemBuilder: (context, index) {
+                              final commenter = comments[index];
+                              return Padding(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8.0),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: Colors.grey.shade300,
+                                      child: ClipOval(
+                                        child: commenter.profileImage != null &&
+                                                commenter.profileImage!
+                                                    .startsWith('http')
+                                            ? Image.network(
+                                                commenter.profileImage!,
+                                                width: 50,
+                                                height: 50,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
+                                                  return Image.asset(
+                                                    'assets/images/test.jpg',
+                                                    width: 50,
+                                                    height: 50,
+                                                    fit: BoxFit.cover,
+                                                  );
+                                                },
+                                              )
+                                            : Image.asset(
+                                                'assets/images/test.jpg',
+                                                width: 50,
+                                                height: 50,
+                                                fit: BoxFit.cover,
+                                              ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Container(
+                                      padding: EdgeInsets.all(12),
+                                      constraints: BoxConstraints(
+                                        maxWidth:
+                                            MediaQuery.of(context).size.width *
+                                                0.75,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: getRedColor(context),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            commenter.username,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          SizedBox(height: 5),
+                                          Text(
+                                            commenter.commentText,
+                                            style: TextStyle(fontSize: 14),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(height: 5),
-                                Text(
-                                  commenter.commentText,
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
               ),
-
-              // حقل لإضافة تعليق جديد
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 5.0),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundImage: currentUserImage != null
-                          ? NetworkImage(currentUserImage!)
-                          : null,
-                      radius: 18,
-                      backgroundColor: Colors.grey.shade300,
-                      child: currentUserImage == null
-                          ? Icon(Icons.person, color: Colors.white)
-                          : null,
-                    ),
-                    SizedBox(width: 10),
                     Expanded(
                       child: TextField(
                         controller: _commentController,
@@ -174,13 +204,25 @@ class _CommentPageState extends State<CommentPage> {
                                 icon: Icon(Icons.emoji_emotions_outlined),
                                 onPressed: _toggleEmojiPicker,
                               ),
-                              IconButton(
-                                icon: Icon(
-                                  Icons.send,
-                                  color: Theme.of(context).secondaryHeaderColor,
-                                ),
-                                onPressed: _addComment,
-                              ),
+                              isSendingComment
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: getRedColor(context),
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    )
+                                  : IconButton(
+                                      icon: Icon(
+                                        Icons.send,
+                                        color: getRedColor(context),
+                                      ),
+                                      onPressed: _addComment,
+                                    ),
                             ],
                           ),
                           border: OutlineInputBorder(
@@ -191,13 +233,19 @@ class _CommentPageState extends State<CommentPage> {
                           fillColor:
                               Theme.of(context).inputDecorationTheme.fillColor,
                           filled: true,
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(30),
+                            borderSide: BorderSide(
+                              color: getRedColor(context),
+                              width: 1.5,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    )
                   ],
                 ),
               ),
-
               if (_showEmojiPicker)
                 EmojiPicker(
                   onEmojiSelected: (category, emoji) {

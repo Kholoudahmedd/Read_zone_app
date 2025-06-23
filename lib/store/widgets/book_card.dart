@@ -151,7 +151,10 @@ class BookCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
-                  return Center(child: CircularProgressIndicator());
+                  return Center(
+                      child: CircularProgressIndicator(
+                    color: getRedColor(context),
+                  ));
                 },
                 errorBuilder: (context, error, stackTrace) =>
                     Icon(Icons.broken_image, size: 100),
